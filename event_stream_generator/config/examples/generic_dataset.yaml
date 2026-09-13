@@ -1,0 +1,32 @@
+mode: build-dataset
+generation_mode: generic
+output_dir: data/runs/generic_smoke
+num_samples: 100
+seed: 0
+semantic_mode: rule
+qa_mode: template
+domains:
+  - IT/System
+  - Finance
+  - Healthcare
+  - Transportation
+topologies:
+  - chain
+  - tree
+mechanism_types:
+  - direct_trigger
+  - delayed_trigger
+  - multi_hop_propagation
+  - recovery
+temporal_regimes:
+  - exponential
+  - gamma
+  - lognormal
+  - weibull
+semantic_quality:
+  enabled: false
+  min_rule_score: 0.7
+  reject_on_rule_issues: true
+training_export:
+  enabled: false
+  format: instruction_jsonl

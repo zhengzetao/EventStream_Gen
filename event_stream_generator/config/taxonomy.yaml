@@ -1,0 +1,34 @@
+domains:
+  - IT/System
+  - Finance
+  - Healthcare
+  - Politics
+  - Social
+  - Supply Chain
+  - Transportation
+  - Industrial
+  - Cybersecurity
+  - Scientific Process
+
+topologies:
+  - chain
+  - tree
+
+mechanism_types:
+  - direct_trigger
+  - delayed_trigger
+  - multi_hop_propagation
+  - burst
+  - recovery
+
+relation_types:
+  - direct_trigger
+  - delayed_trigger
+  - weak_trigger
+  - recovery
+
+temporal_regimes:
+  - exponential
+  - gamma
+  - lognormal
+  - weibull

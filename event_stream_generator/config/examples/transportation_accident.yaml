@@ -1,0 +1,48 @@
+mode: generic
+domain: Transportation
+domains:
+  - Transportation
+topologies:
+  - chain
+  - tree
+mechanism_types:
+  - direct_trigger
+  - delayed_trigger
+  - multi_hop_propagation
+  - recovery
+temporal_regimes:
+  - exponential
+  - gamma
+  - lognormal
+  - weibull
+num_samples: 100
+output: data/transportation_accident_generic.jsonl
+seed: 20260716
+semantic_mode: rule
+qa_mode: template
+
+legacy_source:
+  path: domain_packages/transportation/config/default.json
+  package_path: domain_packages/transportation/package.py
+  scenario_weights:
+    accident_propagation: 0.35
+    weather_disruption: 0.25
+    planned_closure: 0.2
+    compound_weather_accident: 0.2
+  event_types:
+    - transportation.road.incident.vehicle_collision
+    - transportation.road.traffic_state.congestion_onset
+    - transportation.road.traffic_state.normal_flow_restored
+    - transportation.weather.heavy_rain.start
+    - transportation.weather.heavy_rain.end
+    - transportation.road.operation.closure.start
+    - transportation.road.operation.closure.end
+  relation_types:
+    - transportation.initiates_congestion
+    - transportation.propagates_downstream
+    - transportation.transitions_to_recovery
+    - transportation.weather_induces_congestion
+    - transportation.weather_contributes_to_collision
+    - transportation.weather_contributes_to_congestion
+    - transportation.weather_clears
+    - transportation.closure_reopens

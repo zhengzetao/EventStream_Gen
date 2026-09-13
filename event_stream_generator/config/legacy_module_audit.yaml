@@ -1,0 +1,60 @@
+scope: phase_3c_transportation_legacy_audit
+policy: migrate_reusable_domain_knowledge_before_deleting_legacy_modules
+phase_3d_cleanup:
+  status: legacy_stack_removed_after_migration
+  retained_entry_points:
+    - run_data_generation.py
+    - data_generation/run_data_generation.py
+  removed_legacy_paths:
+    - domain_packages/
+    - generation_core/
+    - eventflow_v1/
+    - tests/test_generation_core.py
+    - run_eventflow_v1.py
+    - run_eventflow_calibration.py
+    - run_eventflow_judge_challenge.py
+    - run_eventflow_stability.py
+    - run_parameter_calibration.py
+    - output_eventflow_v140_llm_100/
+    - output_transportation_new/
+modules:
+  - path: run_data_generation.py
+    decision: replaced_by_unified_entry
+    reason: The transportation-only entry point has been replaced by event_stream_generator.cli.
+    reusable_assets: []
+  - path: data_generation/run_data_generation.py
+    decision: compatibility_entry
+    reason: Keep as a thin compatibility wrapper for the user-facing path.
+    reusable_assets: []
+  - path: domain_packages/transportation/config/default.json
+    decision: migrate_domain_config
+    reason: Contains useful transportation scenario weights and default synthetic settings.
+    migrated_to:
+      - event_stream_generator/config/examples/transportation_accident.yaml
+    reusable_assets:
+      - scenario weights
+      - default seed
+      - observation window duration
+  - path: domain_packages/transportation/package.py
+    decision: migrate_domain_knowledge
+    reason: Contains transportation vocabulary, scenario families, relation labels, and temporal prior hints.
+    migrated_to:
+      - event_stream_generator/config/semantic_templates.yaml
+      - event_stream_generator/config/examples/transportation_accident.yaml
+    reusable_assets:
+      - event vocabulary
+      - relation vocabulary
+      - scenario families
+      - relation labels
+      - temporal prior hints
+  - path: generation_core/
+    decision: keep_until_legacy_removal
+    reason: Old scheduler/pipeline stack is no longer used by the unified entry but may be needed to reproduce old outputs until final cleanup.
+    reusable_assets:
+      - writer contract ideas
+      - validation contract ideas
+  - path: eventflow_v1/
+    decision: keep_until_final_cleanup
+    reason: Prior audit artifacts and earlier implementation should not be removed during Phase 3C.
+    reusable_assets:
+      - historical audit outputs

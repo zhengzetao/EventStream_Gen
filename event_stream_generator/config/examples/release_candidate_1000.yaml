@@ -1,0 +1,38 @@
+mode: build-dataset
+generation_mode: generic
+output_dir: data/phase8_release_candidate_1000
+num_samples: 1000
+seed: 8800
+semantic_mode: llm
+qa_mode: template
+domains:
+  - IT/System
+  - Finance
+  - Healthcare
+  - Politics
+  - Social
+  - Supply Chain
+  - Transportation
+  - Industrial
+  - Cybersecurity
+  - Scientific Process
+topologies:
+  - chain
+  - tree
+mechanism_types:
+  - direct_trigger
+  - delayed_trigger
+  - multi_hop_propagation
+  - recovery
+temporal_regimes:
+  - exponential
+  - gamma
+  - lognormal
+  - weibull
+semantic_quality:
+  enabled: true
+  min_rule_score: 0.7
+  reject_on_rule_issues: true
+training_export:
+  enabled: true
+  format: instruction_jsonl

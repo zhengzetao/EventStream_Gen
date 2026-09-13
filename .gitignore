@@ -1,0 +1,6 @@
+__pycache__/
+.env
+batch_output/
+data/
+output/
+*.log
