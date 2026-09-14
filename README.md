@@ -157,7 +157,7 @@ event_stream_generator/semantic/llm_client.py
 There is no root-level `llm_client.py` in the active framework.
 
 For larger LLM semantic runs, use bounded concurrency, a persistent semantic
-cache, and a progress file:
+cache, a progress file, and the optional LLM judge quality gate:
 
 ```bash
 python run_data_generation.py \
@@ -168,8 +168,15 @@ python run_data_generation.py \
   --semantic-mode llm \
   --llm-concurrency 4 \
   --llm-cache data/cache/llm_semantic_cache.json \
-  --progress-path data/runs/llm_run/progress.json
+  --progress-path data/runs/llm_run/progress.json \
+  --semantic-judge-mode llm \
+  --semantic-judge-threshold 0.8 \
+  --semantic-judge-max-retry 3
 ```
+
+When the judge gate is enabled, rejected semantic mappings are regenerated with
+judge feedback. The LLM still cannot modify timestamps, topology, parent/root
+labels, regimes, or QA answers.
 
 ## Testing
 

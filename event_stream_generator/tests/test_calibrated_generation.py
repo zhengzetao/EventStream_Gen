@@ -147,6 +147,54 @@ class CalibratedGenerationTests(unittest.TestCase):
             ]
             self.assertEqual(causal_types, ["E5", "E11", "E21"])
 
+    def test_generate_calibrated_cli_accepts_llm_judge_gate_options(self):
+        result = subprocess.run(
+            [
+                sys.executable,
+                "event_stream_generator/scripts/generate_calibrated.py",
+                "--help",
+            ],
+            check=True,
+            capture_output=True,
+            text=True,
+        )
+
+        self.assertIn("--semantic-judge-mode", result.stdout)
+        self.assertIn("--semantic-judge-threshold", result.stdout)
+        self.assertIn("--semantic-judge-max-retry", result.stdout)
+
+    def test_generate_calibrated_rejects_judge_gate_without_llm_semantics(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            prior_path = Path(tmp) / "hdfs_prior.json"
+            output_path = Path(tmp) / "hdfs_synthetic.jsonl"
+            prior_path.write_text(json.dumps(CALIBRATION_PRIOR), encoding="utf-8")
+
+            result = subprocess.run(
+                [
+                    sys.executable,
+                    "event_stream_generator/scripts/generate_calibrated.py",
+                    "--calibration-prior",
+                    str(prior_path),
+                    "--num-samples",
+                    "1",
+                    "--output",
+                    str(output_path),
+                    "--semantic-mode",
+                    "rule",
+                    "--semantic-judge-mode",
+                    "llm",
+                ],
+                check=False,
+                capture_output=True,
+                text=True,
+            )
+
+            self.assertNotEqual(result.returncode, 0)
+            self.assertIn(
+                "--semantic-judge-mode=llm requires --semantic-mode=llm",
+                result.stderr,
+            )
+
 
 if __name__ == "__main__":
     unittest.main()

@@ -24,6 +24,7 @@ from event_stream_generator.semantic.compatibility import (
 from event_stream_generator.semantic.instantiation import (
     instantiate_scenario,
     instantiate_scenario_llm,
+    instantiate_scenario_llm_judge_guided,
 )
 from event_stream_generator.semantic.llm_client import OpenAIResponsesClient
 from event_stream_generator.simulation.calibrated import generate_calibrated_event_stream
@@ -45,6 +46,24 @@ def main() -> int:
     parser.add_argument("--mechanism-type", default="multi_hop_propagation")
     parser.add_argument("--semantic-mode", choices=["none", "rule", "llm"], default="none")
     parser.add_argument(
+        "--semantic-judge-mode",
+        choices=["none", "llm"],
+        default="none",
+        help="Optionally require an LLM semantic judge to approve LLM-instantiated scenarios.",
+    )
+    parser.add_argument(
+        "--semantic-judge-threshold",
+        type=float,
+        default=0.8,
+        help="Minimum LLM judge score required when --semantic-judge-mode=llm.",
+    )
+    parser.add_argument(
+        "--semantic-judge-max-retry",
+        type=int,
+        default=3,
+        help="Maximum semantic regeneration attempts after LLM judge rejection.",
+    )
+    parser.add_argument(
         "--semantic-templates",
         default=str(default_config_dir / "semantic_templates.yaml"),
     )
@@ -53,6 +72,10 @@ def main() -> int:
 
     if args.num_samples <= 0:
         raise ValueError("--num-samples must be positive")
+    if args.semantic_judge_max_retry <= 0:
+        raise ValueError("--semantic-judge-max-retry must be positive")
+    if args.semantic_judge_mode == "llm" and args.semantic_mode != "llm":
+        parser.error("--semantic-judge-mode=llm requires --semantic-mode=llm")
     config = _adapt_config_for_calibration(
         load_yaml(args.prior),
         _load_calibration_prior(args.calibration_prior),
@@ -110,11 +133,20 @@ def main() -> int:
                     semantic = validate_semantic(stream)
                 elif args.semantic_mode == "llm":
                     try:
-                        stream = instantiate_scenario_llm(
-                            stream,
-                            llm_client,
-                            max_retry=3,
-                        )
+                        if args.semantic_judge_mode == "llm":
+                            stream = instantiate_scenario_llm_judge_guided(
+                                stream,
+                                semantic_client=llm_client,
+                                judge_client=llm_client,
+                                max_retry=args.semantic_judge_max_retry,
+                                approval_threshold=args.semantic_judge_threshold,
+                            )
+                        else:
+                            stream = instantiate_scenario_llm(
+                                stream,
+                                llm_client,
+                                max_retry=3,
+                            )
                         stream.metadata.update(
                             {
                                 "generation_mode": "calibrated",

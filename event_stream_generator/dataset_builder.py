@@ -135,6 +135,9 @@ def _generation_args(
         "llm_cache": "--llm-cache",
         "progress_path": "--progress-path",
         "llm_concurrency": "--llm-concurrency",
+        "semantic_judge_mode": "--semantic-judge-mode",
+        "semantic_judge_threshold": "--semantic-judge-threshold",
+        "semantic_judge_max_retry": "--semantic-judge-max-retry",
     }
     list_keys = {
         "domains": "--domains",

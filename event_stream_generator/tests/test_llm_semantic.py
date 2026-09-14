@@ -6,7 +6,10 @@ import unittest
 from unittest.mock import patch
 
 from event_stream_generator.semantic.llm_client import OpenAIResponsesClient, extract_response_text
-from event_stream_generator.semantic import instantiate_scenario_llm
+from event_stream_generator.semantic import (
+    instantiate_scenario_llm,
+    instantiate_scenario_llm_judge_guided,
+)
 from event_stream_generator.tests.test_semantic import _stream
 from event_stream_generator.validators.semantic import validate_semantic
 
@@ -39,6 +42,18 @@ class FakeClient:
         self.prompts.append(prompt)
         if not self.replies:
             raise AssertionError("fake client has no reply left")
+        return self.replies.pop(0)
+
+
+class FakeJudgeClient:
+    def __init__(self, replies):
+        self.replies = list(replies)
+        self.prompts = []
+
+    def complete(self, prompt: str) -> str:
+        self.prompts.append(prompt)
+        if not self.replies:
+            raise AssertionError("fake judge has no reply left")
         return self.replies.pop(0)
 
 
@@ -131,6 +146,128 @@ class LlmSemanticTests(unittest.TestCase):
 
         self.assertTrue(validate_semantic(updated).approved)
         self.assertEqual(len(client.prompts), 2)
+
+    def test_judge_guided_instantiation_retries_with_judge_feedback(self) -> None:
+        weak = json.dumps(
+            {
+                "scenario_description": "A weak semantic scenario.",
+                "event_mapping": {
+                    "E0": "database connection pool exhaustion",
+                    "E1": "API request queue expansion",
+                    "E2": "customer-facing latency alert",
+                },
+                "relation_explanations": [
+                    {
+                        "source": "E0",
+                        "target": "E1",
+                        "relation_type": "direct_trigger",
+                        "explanation": "The database bottleneck causes queue growth.",
+                    },
+                    {
+                        "source": "E1",
+                        "target": "E2",
+                        "relation_type": "delayed_trigger",
+                        "explanation": "The queue later causes an alert.",
+                    },
+                ],
+            }
+        )
+        strong = json.dumps(
+            {
+                "scenario_description": "A checkout service overload produces a queue-driven latency incident.",
+                "event_mapping": {
+                    "E0": "checkout database pool exhausts",
+                    "E1": "checkout API workers queue requests",
+                    "E2": "checkout latency alert fires",
+                },
+                "relation_explanations": [
+                    {
+                        "source": "E0",
+                        "target": "E1",
+                        "relation_type": "direct_trigger",
+                        "explanation": "The exhausted checkout database pool prevents API workers from clearing requests.",
+                    },
+                    {
+                        "source": "E1",
+                        "target": "E2",
+                        "relation_type": "delayed_trigger",
+                        "explanation": "The same checkout queue persists until the latency threshold is crossed.",
+                    },
+                ],
+            }
+        )
+        semantic_client = FakeClient([weak, strong])
+        judge_client = FakeJudgeClient(
+            [
+                json.dumps(
+                    {
+                        "approved": False,
+                        "score": 0.62,
+                        "issues": ["causal direction is too generic"],
+                        "suggestions": ["Tie E1 and E2 to the same checkout service queue."],
+                    }
+                ),
+                json.dumps(
+                    {
+                        "approved": True,
+                        "score": 0.91,
+                        "issues": [],
+                        "suggestions": [],
+                    }
+                ),
+            ]
+        )
+
+        updated = instantiate_scenario_llm_judge_guided(
+            _stream(),
+            semantic_client=semantic_client,
+            judge_client=judge_client,
+            max_retry=2,
+            approval_threshold=0.8,
+        )
+
+        self.assertTrue(validate_semantic(updated).approved)
+        self.assertEqual(updated.metadata["llm_attempt_count"], 2)
+        self.assertEqual(updated.metadata["semantic_judge"]["score"], 0.91)
+        self.assertEqual(len(semantic_client.prompts), 2)
+        self.assertEqual(len(judge_client.prompts), 2)
+        self.assertIn("causal direction is too generic", semantic_client.prompts[1])
+        self.assertIn("Tie E1 and E2 to the same checkout service queue", semantic_client.prompts[1])
+
+    def test_judge_guided_instantiation_rejects_after_max_retry(self) -> None:
+        reply = json.dumps(
+            {
+                "scenario_description": "A weak semantic scenario.",
+                "event_mapping": {"E0": "A", "E1": "B", "E2": "C"},
+                "relation_explanations": [
+                    {"source": "E0", "target": "E1", "relation_type": "direct_trigger", "explanation": "A causes B."},
+                    {"source": "E1", "target": "E2", "relation_type": "delayed_trigger", "explanation": "B later causes C."},
+                ],
+            }
+        )
+        judge_client = FakeJudgeClient(
+            [
+                json.dumps(
+                    {
+                        "approved": False,
+                        "score": 0.5,
+                        "issues": ["weak edge alignment"],
+                        "suggestions": [],
+                    }
+                )
+            ]
+        )
+
+        with self.assertRaises(RuntimeError) as context:
+            instantiate_scenario_llm_judge_guided(
+                _stream(),
+                semantic_client=FakeClient([reply]),
+                judge_client=judge_client,
+                max_retry=1,
+                approval_threshold=0.8,
+            )
+
+        self.assertIn("LLM judge rejected semantic scenario", str(context.exception))
 
     def test_llm_prompt_constrains_output_size_and_relation_count(self) -> None:
         valid = json.dumps(

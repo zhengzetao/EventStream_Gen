@@ -28,6 +28,7 @@ from event_stream_generator.semantic.instantiation import (
     apply_semantic_scenario,
     instantiate_scenario,
     instantiate_scenario_llm,
+    instantiate_scenario_llm_judge_guided,
 )
 from event_stream_generator.semantic.llm_cache import (
     SemanticCache,
@@ -91,12 +92,34 @@ def main() -> int:
         "--progress-path",
         help="Optional JSON progress file updated during generation.",
     )
+    parser.add_argument(
+        "--semantic-judge-mode",
+        choices=["none", "llm"],
+        default="none",
+        help="Optional LLM judge gate for LLM semantic instantiation.",
+    )
+    parser.add_argument(
+        "--semantic-judge-threshold",
+        type=float,
+        default=0.8,
+        help="Minimum LLM judge score for accepting semantic instantiation.",
+    )
+    parser.add_argument(
+        "--semantic-judge-max-retry",
+        type=int,
+        default=3,
+        help="Maximum semantic retries when LLM judge rejects a sample.",
+    )
     args = parser.parse_args()
 
     if args.num_samples <= 0:
         raise ValueError("--num-samples must be positive")
     if args.llm_concurrency <= 0:
         raise ValueError("--llm-concurrency must be positive")
+    if args.semantic_judge_max_retry <= 0:
+        raise ValueError("--semantic-judge-max-retry must be positive")
+    if args.semantic_judge_mode == "llm" and args.semantic_mode != "llm":
+        raise ValueError("--semantic-judge-mode=llm requires --semantic-mode=llm")
     taxonomy = load_yaml(args.taxonomy)
     _apply_taxonomy_filters(taxonomy, args)
     prior = load_yaml(args.prior)
@@ -248,7 +271,13 @@ def _generate_one_sample(
                 semantic = validate_semantic(stream)
             elif args.semantic_mode == "llm":
                 try:
-                    stream = _instantiate_llm_with_cache(stream, llm_client, cache, cache_lock)
+                    stream = _instantiate_llm_with_cache(
+                        stream,
+                        llm_client,
+                        cache,
+                        cache_lock,
+                        args=args,
+                    )
                     semantic = validate_semantic(stream)
                 except Exception as exc:
                     semantic = validate_semantic(stream)
@@ -305,10 +334,14 @@ def _instantiate_llm_with_cache(
     llm_client: Any,
     cache: Optional[SemanticCache],
     cache_lock: threading.Lock,
+    args: Optional[argparse.Namespace] = None,
 ) -> Any:
     if cache is None:
-        return instantiate_scenario_llm(stream, llm_client, max_retry=3)
-    cache_key = make_semantic_cache_key(stream)
+        return _instantiate_llm(stream, llm_client, args)
+    cache_key = make_semantic_cache_key(
+        stream,
+        prompt_version=_semantic_cache_prompt_version(args),
+    )
     with cache_lock:
         cached = cache.get(cache_key)
     if cached is not None:
@@ -320,11 +353,37 @@ def _instantiate_llm_with_cache(
         )
         updated.metadata["llm_cache_hit"] = True
         return updated
-    updated = instantiate_scenario_llm(stream, llm_client, max_retry=3)
+    updated = _instantiate_llm(stream, llm_client, args)
     with cache_lock:
         cache.set(cache_key, updated.semantic_scenario or {})
     updated.metadata["llm_cache_hit"] = False
     return updated
+
+
+def _semantic_cache_prompt_version(args: Optional[argparse.Namespace]) -> str:
+    if args is not None and args.semantic_judge_mode == "llm":
+        return (
+            "llm_semantic_prompt_v1_judge_guided_"
+            f"threshold_{args.semantic_judge_threshold}_"
+            f"retry_{args.semantic_judge_max_retry}"
+        )
+    return "llm_semantic_prompt_v1"
+
+
+def _instantiate_llm(
+    stream: Any,
+    llm_client: Any,
+    args: Optional[argparse.Namespace],
+) -> Any:
+    if args is not None and args.semantic_judge_mode == "llm":
+        return instantiate_scenario_llm_judge_guided(
+            stream,
+            semantic_client=llm_client,
+            judge_client=llm_client,
+            max_retry=args.semantic_judge_max_retry,
+            approval_threshold=args.semantic_judge_threshold,
+        )
+    return instantiate_scenario_llm(stream, llm_client, max_retry=3)
 
 
 def _run_llm_tasks_concurrently(

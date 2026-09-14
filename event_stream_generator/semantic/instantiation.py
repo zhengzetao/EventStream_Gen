@@ -12,6 +12,7 @@ from event_stream_generator.skeleton.semantic_skeleton import (
     SKELETON_VERSION,
     build_semantic_skeleton,
 )
+from event_stream_generator.judge.semantic_judge import judge_semantic_scenario
 from event_stream_generator.validators.semantic import validate_semantic
 
 
@@ -111,6 +112,51 @@ def instantiate_scenario_llm(
     raise RuntimeError(f"LLM semantic instantiation failed after {max_retry} attempts: {last_error}")
 
 
+def instantiate_scenario_llm_judge_guided(
+    stream: EventStream,
+    *,
+    semantic_client: SemanticClient,
+    judge_client: SemanticClient,
+    max_retry: int = 3,
+    approval_threshold: float = 0.8,
+) -> EventStream:
+    last_error = ""
+    last_judge: Dict[str, Any] | None = None
+    for attempt in range(max_retry):
+        prompt = _llm_prompt(stream, last_error=last_error)
+        text = semantic_client.complete(prompt)
+        try:
+            scenario = _parse_llm_json(text)
+            updated = _apply_semantic_scenario(
+                stream,
+                scenario,
+                semantic_method="llm",
+                llm_attempt_count=attempt + 1,
+            )
+        except Exception as exc:
+            last_error = f"Previous response failed to parse/apply: {exc}"
+            continue
+        validation = validate_semantic(updated)
+        if not validation.approved:
+            last_error = "Previous response failed semantic validation: " + "; ".join(
+                validation.errors
+            )
+            continue
+        last_judge = judge_semantic_scenario(
+            updated.to_dict(),
+            judge_client,
+            approval_threshold=approval_threshold,
+        )
+        if last_judge["approved"]:
+            updated.metadata["semantic_judge"] = last_judge
+            return updated
+        last_error = _judge_feedback(last_judge)
+    raise RuntimeError(
+        "LLM judge rejected semantic scenario after "
+        f"{max_retry} attempts: {last_error}"
+    )
+
+
 def apply_semantic_scenario(
     stream: EventStream,
     scenario: Dict[str, Any],
@@ -124,6 +170,19 @@ def apply_semantic_scenario(
         semantic_method=semantic_method,
         llm_attempt_count=llm_attempt_count,
     )
+
+
+def _judge_feedback(judge_result: Dict[str, Any]) -> str:
+    issues = [str(item) for item in judge_result.get("issues", []) or []]
+    suggestions = [str(item) for item in judge_result.get("suggestions", []) or []]
+    parts = []
+    if issues:
+        parts.append("Judge issues: " + "; ".join(issues))
+    if suggestions:
+        parts.append("Judge suggestions: " + "; ".join(suggestions))
+    if not parts:
+        parts.append(f"Judge score below threshold: {judge_result.get('score')}")
+    return " ".join(parts)
 
 
 def _apply_semantic_scenario(

@@ -26,6 +26,9 @@ def main() -> int:
     parser.add_argument("--llm-concurrency", type=int)
     parser.add_argument("--llm-cache")
     parser.add_argument("--progress-path")
+    parser.add_argument("--semantic-judge-mode", choices=["none", "llm"])
+    parser.add_argument("--semantic-judge-threshold", type=float)
+    parser.add_argument("--semantic-judge-max-retry", type=int)
     args = parser.parse_args()
 
     config = load_yaml(args.config)
@@ -38,6 +41,9 @@ def main() -> int:
         ("llm_concurrency", args.llm_concurrency),
         ("llm_cache", args.llm_cache),
         ("progress_path", args.progress_path),
+        ("semantic_judge_mode", args.semantic_judge_mode),
+        ("semantic_judge_threshold", args.semantic_judge_threshold),
+        ("semantic_judge_max_retry", args.semantic_judge_max_retry),
     ):
         if value is not None:
             config[key] = value

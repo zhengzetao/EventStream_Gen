@@ -102,6 +102,9 @@ def _args_from_config(path: Path) -> List[str]:
         "llm_concurrency": "--llm-concurrency",
         "llm_cache": "--llm-cache",
         "progress_path": "--progress-path",
+        "semantic_judge_mode": "--semantic-judge-mode",
+        "semantic_judge_threshold": "--semantic-judge-threshold",
+        "semantic_judge_max_retry": "--semantic-judge-max-retry",
     }
     list_key_to_arg = {
         "domains": "--domains",

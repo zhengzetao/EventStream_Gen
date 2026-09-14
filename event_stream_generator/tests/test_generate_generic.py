@@ -116,6 +116,9 @@ class GenerateGenericCliTests(unittest.TestCase):
                 "llm_concurrency": 4,
                 "llm_cache": "data/cache/semantic.json",
                 "progress_path": "data/runs/progress.json",
+                "semantic_judge_mode": "llm",
+                "semantic_judge_threshold": 0.8,
+                "semantic_judge_max_retry": 2,
             },
             "generic",
             Path("data/out.jsonl"),
@@ -127,6 +130,12 @@ class GenerateGenericCliTests(unittest.TestCase):
         self.assertIn("data/cache/semantic.json", args)
         self.assertIn("--progress-path", args)
         self.assertIn("data/runs/progress.json", args)
+        self.assertIn("--semantic-judge-mode", args)
+        self.assertIn("llm", args)
+        self.assertIn("--semantic-judge-threshold", args)
+        self.assertIn("0.8", args)
+        self.assertIn("--semantic-judge-max-retry", args)
+        self.assertIn("2", args)
 
     def test_progress_writer_records_completed_and_status(self):
         with tempfile.TemporaryDirectory() as tmp:
@@ -200,6 +209,27 @@ class GenerateGenericCliTests(unittest.TestCase):
 
             loaded = SemanticCache(path)
             self.assertEqual(loaded.get(key), scenario)
+
+    def test_semantic_cache_key_changes_for_prompt_version(self):
+        stream = EventStream(
+            stream_id="stream_cache",
+            domain="IT/System",
+            topology="chain",
+            mechanism_type="direct_trigger",
+            primary_regime="gamma",
+            seed=11,
+            mechanism={
+                "nodes": [{"node_id": "E0"}, {"node_id": "E1"}],
+                "edges": [{"source": "E0", "target": "E1", "relation_type": "direct_trigger"}],
+            },
+            events=[],
+            ground_truth={},
+        )
+
+        self.assertNotEqual(
+            make_semantic_cache_key(stream, prompt_version="semantic-only-v1"),
+            make_semantic_cache_key(stream, prompt_version="judge-guided-v1-threshold-0.8"),
+        )
 
 
 if __name__ == "__main__":
