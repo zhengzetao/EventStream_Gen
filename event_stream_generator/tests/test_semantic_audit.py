@@ -179,7 +179,7 @@ class SemanticAuditTests(unittest.TestCase):
             subprocess.run(
                 [
                     sys.executable,
-                    "data_generation/run_data_generation.py",
+                    "run_data_generation.py",
                     "--mode",
                     "audit-semantics",
                     "--accepted-jsonl",

@@ -4,8 +4,8 @@ phase_3d_cleanup:
   status: legacy_stack_removed_after_migration
   retained_entry_points:
     - run_data_generation.py
-    - data_generation/run_data_generation.py
   removed_legacy_paths:
+    - data_generation/run_data_generation.py
     - domain_packages/
     - generation_core/
     - eventflow_v1/
@@ -23,8 +23,8 @@ modules:
     reason: The transportation-only entry point has been replaced by event_stream_generator.cli.
     reusable_assets: []
   - path: data_generation/run_data_generation.py
-    decision: compatibility_entry
-    reason: Keep as a thin compatibility wrapper for the user-facing path.
+    decision: removed_after_single_entry_convergence
+    reason: The project now exposes a single root-level command-line entry to avoid duplicate file-entry paths.
     reusable_assets: []
   - path: domain_packages/transportation/config/default.json
     decision: migrate_domain_config

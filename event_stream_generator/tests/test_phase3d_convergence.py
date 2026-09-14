@@ -8,6 +8,10 @@ ROOT = Path(__file__).resolve().parents[2]
 
 
 class Phase3DConvergenceTests(unittest.TestCase):
+    def test_root_run_data_generation_is_the_only_cli_file_entry(self) -> None:
+        self.assertTrue((ROOT / "run_data_generation.py").exists())
+        self.assertFalse((ROOT / "data_generation/run_data_generation.py").exists())
+
     def test_legacy_generation_stack_has_been_removed(self) -> None:
         removed_paths = [
             "domain_packages",
@@ -30,7 +34,6 @@ class Phase3DConvergenceTests(unittest.TestCase):
         forbidden = ("domain_packages", "generation_core", "eventflow_v1")
         for relative_path in [
             "run_data_generation.py",
-            "data_generation/run_data_generation.py",
             "event_stream_generator/cli/__init__.py",
             "event_stream_generator/cli/main.py",
         ]:

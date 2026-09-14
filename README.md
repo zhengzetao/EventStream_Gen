@@ -30,18 +30,8 @@ answers.
 Run commands from the repository root:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode build-dataset \
-  --config event_stream_generator/config/examples/generic_dataset.yaml \
-  --output-dir data/runs/example_generic \
-  --num-samples 100 \
-  --semantic-mode rule
-```
-
-The root-level entry is equivalent:
-
-```bash
-python run_data_generation.py --mode build-dataset \
   --config event_stream_generator/config/examples/generic_dataset.yaml \
   --output-dir data/runs/example_generic \
   --num-samples 100 \
@@ -93,7 +83,7 @@ functional subpackages above.
 Generic generation:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode generate-generic \
   --num-samples 100 \
   --output data/generic.jsonl \
@@ -104,7 +94,7 @@ python data_generation/run_data_generation.py \
 Build a complete dataset directory:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode build-dataset \
   --config event_stream_generator/config/examples/release_candidate_1000.yaml \
   --output-dir data/runs/release_candidate \
@@ -115,7 +105,7 @@ python data_generation/run_data_generation.py \
 Calibrate from generic event CSV:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode calibrate-events \
   --input real_events.csv \
   --output data/priors/event_prior.json \
@@ -125,7 +115,7 @@ python data_generation/run_data_generation.py \
 Generate from calibrated prior:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode generate-calibrated \
   --calibration-prior data/priors/event_prior.json \
   --num-samples 100 \
@@ -137,7 +127,7 @@ python data_generation/run_data_generation.py \
 Evaluate generic vs calibrated outputs:
 
 ```bash
-python data_generation/run_data_generation.py \
+python run_data_generation.py \
   --mode evaluate-generation \
   --generic-jsonl data/generic.jsonl \
   --calibrated-jsonl data/calibrated.jsonl \
