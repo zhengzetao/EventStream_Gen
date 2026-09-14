@@ -156,6 +156,21 @@ event_stream_generator/semantic/llm_client.py
 
 There is no root-level `llm_client.py` in the active framework.
 
+For larger LLM semantic runs, use bounded concurrency, a persistent semantic
+cache, and a progress file:
+
+```bash
+python run_data_generation.py \
+  --mode build-dataset \
+  --config event_stream_generator/config/examples/release_candidate_1000.yaml \
+  --output-dir data/runs/llm_run \
+  --num-samples 100 \
+  --semantic-mode llm \
+  --llm-concurrency 4 \
+  --llm-cache data/cache/llm_semantic_cache.json \
+  --progress-path data/runs/llm_run/progress.json
+```
+
 ## Testing
 
 The project has been validated in the server environment with:

@@ -111,6 +111,21 @@ def instantiate_scenario_llm(
     raise RuntimeError(f"LLM semantic instantiation failed after {max_retry} attempts: {last_error}")
 
 
+def apply_semantic_scenario(
+    stream: EventStream,
+    scenario: Dict[str, Any],
+    *,
+    semantic_method: str,
+    llm_attempt_count: int | None = None,
+) -> EventStream:
+    return _apply_semantic_scenario(
+        stream,
+        scenario,
+        semantic_method=semantic_method,
+        llm_attempt_count=llm_attempt_count,
+    )
+
+
 def _apply_semantic_scenario(
     stream: EventStream,
     scenario: Dict[str, Any],

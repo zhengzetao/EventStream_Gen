@@ -132,6 +132,9 @@ def _generation_args(
         "semantic_templates": "--semantic-templates",
         "topology": "--topology",
         "mechanism_type": "--mechanism-type",
+        "llm_cache": "--llm-cache",
+        "progress_path": "--progress-path",
+        "llm_concurrency": "--llm-concurrency",
     }
     list_keys = {
         "domains": "--domains",

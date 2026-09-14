@@ -23,6 +23,9 @@ def main() -> int:
     parser.add_argument("--seed", type=int)
     parser.add_argument("--semantic-mode", choices=["none", "rule", "llm"])
     parser.add_argument("--qa-mode", choices=["none", "template"])
+    parser.add_argument("--llm-concurrency", type=int)
+    parser.add_argument("--llm-cache")
+    parser.add_argument("--progress-path")
     args = parser.parse_args()
 
     config = load_yaml(args.config)
@@ -32,6 +35,9 @@ def main() -> int:
         ("seed", args.seed),
         ("semantic_mode", args.semantic_mode),
         ("qa_mode", args.qa_mode),
+        ("llm_concurrency", args.llm_concurrency),
+        ("llm_cache", args.llm_cache),
+        ("progress_path", args.progress_path),
     ):
         if value is not None:
             config[key] = value

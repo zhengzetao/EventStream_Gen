@@ -99,6 +99,9 @@ def _args_from_config(path: Path) -> List[str]:
         "output_csv": "--output-csv",
         "topology": "--topology",
         "mechanism_type": "--mechanism-type",
+        "llm_concurrency": "--llm-concurrency",
+        "llm_cache": "--llm-cache",
+        "progress_path": "--progress-path",
     }
     list_key_to_arg = {
         "domains": "--domains",

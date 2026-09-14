@@ -4,10 +4,14 @@
 from __future__ import annotations
 
 import argparse
+import copy
 import itertools
 import sys
+import threading
+from concurrent.futures import ThreadPoolExecutor, as_completed
+from datetime import datetime, timezone
 from pathlib import Path
-from typing import Any, Dict, List
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple
 
 ROOT = Path(__file__).resolve().parents[2]
 if str(ROOT) not in sys.path:
@@ -21,8 +25,13 @@ from event_stream_generator.semantic.compatibility import (
     disabled_semantic_compatibility_metadata,
 )
 from event_stream_generator.semantic.instantiation import (
+    apply_semantic_scenario,
     instantiate_scenario,
     instantiate_scenario_llm,
+)
+from event_stream_generator.semantic.llm_cache import (
+    SemanticCache,
+    make_semantic_cache_key,
 )
 from event_stream_generator.semantic.llm_client import OpenAIResponsesClient
 from event_stream_generator.simulation.simulator import generate_event_stream
@@ -68,10 +77,26 @@ def main() -> int:
     parser.add_argument("--topologies", nargs="+")
     parser.add_argument("--mechanism-types", nargs="+")
     parser.add_argument("--temporal-regimes", nargs="+")
+    parser.add_argument(
+        "--llm-concurrency",
+        type=int,
+        default=1,
+        help="Number of concurrent LLM semantic instantiation requests.",
+    )
+    parser.add_argument(
+        "--llm-cache",
+        help="Optional JSON cache path for LLM semantic instantiation results.",
+    )
+    parser.add_argument(
+        "--progress-path",
+        help="Optional JSON progress file updated during generation.",
+    )
     args = parser.parse_args()
 
     if args.num_samples <= 0:
         raise ValueError("--num-samples must be positive")
+    if args.llm_concurrency <= 0:
+        raise ValueError("--llm-concurrency must be positive")
     taxonomy = load_yaml(args.taxonomy)
     _apply_taxonomy_filters(taxonomy, args)
     prior = load_yaml(args.prior)
@@ -82,113 +107,277 @@ def main() -> int:
     _apply_overrides(prior, args)
 
     combinations = _stratified_combinations(taxonomy)
-    accepted: List[Dict[str, Any]] = []
-    rejected: List[Dict[str, Any]] = []
     max_retry = int(prior.get("stream", {}).get("max_generation_retry", 5))
     output = Path(args.output)
+    progress_path = Path(args.progress_path) if args.progress_path else None
+    cache = SemanticCache(args.llm_cache) if args.semantic_mode == "llm" else None
+    cache_lock = threading.Lock()
 
-    for index in range(args.num_samples):
-        combo = combinations[index % len(combinations)]
-        accepted_sample = None
-        for attempt in range(max_retry):
-            sample_seed = args.seed + index * 1009 + attempt * 104729
-            sample_config, compatibility_metadata = _config_for_combo(
-                prior,
-                combo,
-                semantic_mode=args.semantic_mode,
+    worker = lambda index: _generate_one_sample(
+        index=index,
+        args=args,
+        prior=copy.deepcopy(prior),
+        combinations=combinations,
+        semantic_templates=semantic_templates,
+        llm_client=llm_client,
+        max_retry=max_retry,
+        cache=cache,
+        cache_lock=cache_lock,
+    )
+    _write_progress(
+        progress_path,
+        total=args.num_samples,
+        completed=0,
+        accepted=0,
+        rejected=0,
+        status="running",
+    )
+    if args.semantic_mode == "llm" and args.llm_concurrency > 1:
+        accepted, rejected = _run_llm_tasks_concurrently(
+            indexes=list(range(args.num_samples)),
+            worker=worker,
+            concurrency=args.llm_concurrency,
+            progress_path=progress_path,
+        )
+    else:
+        accepted = []
+        rejected = []
+        for index in range(args.num_samples):
+            _, accepted_sample, rejected_attempts = worker(index)
+            rejected.extend(rejected_attempts)
+            if accepted_sample is None:
+                _write_outputs(output, accepted, rejected)
+                _write_progress(
+                    progress_path,
+                    total=args.num_samples,
+                    completed=index + 1,
+                    accepted=len(accepted),
+                    rejected=len(rejected),
+                    status="failed",
+                )
+                print(
+                    f"generation failed stream_index={index} accepted={len(accepted)} "
+                    f"rejected={len(rejected)} output={output}"
+                )
+                return 1
+            accepted.append(accepted_sample)
+            _write_progress(
+                progress_path,
+                total=args.num_samples,
+                completed=index + 1,
+                accepted=len(accepted),
+                rejected=len(rejected),
+                status="running",
             )
-            stream = generate_event_stream(
-                stream_id=f"stream_{index:06d}",
-                seed=sample_seed,
-                config=sample_config,
-                **combo,
-            )
-            stream.metadata["background_density"] = sample_config.get("background", {}).get(
-                "density", "medium"
-            )
-            stream.metadata["semantic_compatibility"] = compatibility_metadata
-            structural = validate_structure(stream, config=sample_config)
-            temporal = validate_temporal(stream, config=sample_config)
-            semantic = None
-            label = None
-            if structural.approved and temporal.approved:
-                if args.semantic_mode == "rule":
-                    stream = instantiate_scenario(
-                        stream,
-                        semantic_templates,
-                        seed=sample_seed + 17,
-                    )
-                    semantic = validate_semantic(stream)
-                elif args.semantic_mode == "llm":
-                    try:
-                        stream = instantiate_scenario_llm(
-                            stream,
-                            llm_client,
-                            max_retry=3,
-                        )
-                        semantic = validate_semantic(stream)
-                    except Exception as exc:
-                        semantic = validate_semantic(stream)
-                        semantic.errors.append(str(exc))
-            if (
-                structural.approved
-                and temporal.approved
-                and (semantic is None or semantic.approved)
-                and args.qa_mode == "template"
-            ):
-                stream.qa_pairs = generate_all_qa(stream)
-                label = validate_qa_pairs(stream, stream.qa_pairs)
-            stream.validation = {
-                "structural": structural.to_dict(),
-                "temporal": temporal.to_dict(),
-            }
-            if semantic is not None:
-                stream.validation["semantic"] = semantic.to_dict()
-            if label is not None:
-                stream.validation["label"] = label.to_dict()
-            if (
-                structural.approved
-                and temporal.approved
-                and (semantic is None or semantic.approved)
-                and (label is None or label.approved)
-            ):
-                accepted_sample = stream.to_dict()
-                break
-            stage = "label_validation"
-            if not structural.approved:
-                stage = "structural_validation"
-            elif not temporal.approved:
-                stage = "temporal_validation"
-            elif semantic is not None and not semantic.approved:
-                stage = "semantic_validation"
-            rejected.append(
-                {
-                    "stream_id": f"stream_{index:06d}_attempt_{attempt + 1}",
-                    "stage": stage,
-                    "approved": False,
-                    "errors": (
-                        structural.errors
-                        + temporal.errors
-                        + (label.errors if label is not None else [])
-                        + (semantic.errors if semantic is not None else [])
-                    ),
-                    "sample": stream.to_dict(),
-                }
-            )
-        if accepted_sample is None:
-            _write_outputs(output, accepted, rejected)
-            print(
-                f"generation failed stream_index={index} accepted={len(accepted)} "
-                f"rejected={len(rejected)} output={output}"
-            )
-            return 1
-        accepted.append(accepted_sample)
+
+    if cache is not None:
+        cache.save()
+    if len(accepted) != args.num_samples:
+        _write_outputs(output, accepted, rejected)
+        _write_progress(
+            progress_path,
+            total=args.num_samples,
+            completed=args.num_samples,
+            accepted=len(accepted),
+            rejected=len(rejected),
+            status="failed",
+        )
+        print(
+            f"generation failed accepted={len(accepted)} rejected={len(rejected)} "
+            f"output={output}"
+        )
+        return 1
 
     _write_outputs(output, accepted, rejected)
+    _write_progress(
+        progress_path,
+        total=args.num_samples,
+        completed=args.num_samples,
+        accepted=len(accepted),
+        rejected=len(rejected),
+        status="completed",
+    )
     print(
         f"generated accepted={len(accepted)} rejected={len(rejected)} output={output}"
     )
     return 0
+
+
+def _generate_one_sample(
+    *,
+    index: int,
+    args: argparse.Namespace,
+    prior: Dict[str, Any],
+    combinations: Sequence[Dict[str, str]],
+    semantic_templates: Dict[str, Any],
+    llm_client: Any,
+    max_retry: int,
+    cache: Optional[SemanticCache],
+    cache_lock: threading.Lock,
+) -> Tuple[int, Optional[Dict[str, Any]], List[Dict[str, Any]]]:
+    combo = combinations[index % len(combinations)]
+    rejected: List[Dict[str, Any]] = []
+    for attempt in range(max_retry):
+        sample_seed = args.seed + index * 1009 + attempt * 104729
+        sample_config, compatibility_metadata = _config_for_combo(
+            prior,
+            combo,
+            semantic_mode=args.semantic_mode,
+        )
+        stream = generate_event_stream(
+            stream_id=f"stream_{index:06d}",
+            seed=sample_seed,
+            config=sample_config,
+            **combo,
+        )
+        stream.metadata["background_density"] = sample_config.get("background", {}).get(
+            "density", "medium"
+        )
+        stream.metadata["semantic_compatibility"] = compatibility_metadata
+        structural = validate_structure(stream, config=sample_config)
+        temporal = validate_temporal(stream, config=sample_config)
+        semantic = None
+        label = None
+        if structural.approved and temporal.approved:
+            if args.semantic_mode == "rule":
+                stream = instantiate_scenario(
+                    stream,
+                    semantic_templates,
+                    seed=sample_seed + 17,
+                )
+                semantic = validate_semantic(stream)
+            elif args.semantic_mode == "llm":
+                try:
+                    stream = _instantiate_llm_with_cache(stream, llm_client, cache, cache_lock)
+                    semantic = validate_semantic(stream)
+                except Exception as exc:
+                    semantic = validate_semantic(stream)
+                    semantic.errors.append(str(exc))
+        if (
+            structural.approved
+            and temporal.approved
+            and (semantic is None or semantic.approved)
+            and args.qa_mode == "template"
+        ):
+            stream.qa_pairs = generate_all_qa(stream)
+            label = validate_qa_pairs(stream, stream.qa_pairs)
+        stream.validation = {
+            "structural": structural.to_dict(),
+            "temporal": temporal.to_dict(),
+        }
+        if semantic is not None:
+            stream.validation["semantic"] = semantic.to_dict()
+        if label is not None:
+            stream.validation["label"] = label.to_dict()
+        if (
+            structural.approved
+            and temporal.approved
+            and (semantic is None or semantic.approved)
+            and (label is None or label.approved)
+        ):
+            return index, stream.to_dict(), rejected
+        stage = "label_validation"
+        if not structural.approved:
+            stage = "structural_validation"
+        elif not temporal.approved:
+            stage = "temporal_validation"
+        elif semantic is not None and not semantic.approved:
+            stage = "semantic_validation"
+        rejected.append(
+            {
+                "stream_id": f"stream_{index:06d}_attempt_{attempt + 1}",
+                "stage": stage,
+                "approved": False,
+                "errors": (
+                    structural.errors
+                    + temporal.errors
+                    + (label.errors if label is not None else [])
+                    + (semantic.errors if semantic is not None else [])
+                ),
+                "sample": stream.to_dict(),
+            }
+        )
+    return index, None, rejected
+
+
+def _instantiate_llm_with_cache(
+    stream: Any,
+    llm_client: Any,
+    cache: Optional[SemanticCache],
+    cache_lock: threading.Lock,
+) -> Any:
+    if cache is None:
+        return instantiate_scenario_llm(stream, llm_client, max_retry=3)
+    cache_key = make_semantic_cache_key(stream)
+    with cache_lock:
+        cached = cache.get(cache_key)
+    if cached is not None:
+        updated = apply_semantic_scenario(
+            stream,
+            cached,
+            semantic_method="llm",
+            llm_attempt_count=0,
+        )
+        updated.metadata["llm_cache_hit"] = True
+        return updated
+    updated = instantiate_scenario_llm(stream, llm_client, max_retry=3)
+    with cache_lock:
+        cache.set(cache_key, updated.semantic_scenario or {})
+    updated.metadata["llm_cache_hit"] = False
+    return updated
+
+
+def _run_llm_tasks_concurrently(
+    *,
+    indexes: Sequence[int],
+    worker: Callable[[int], Tuple[int, Optional[Dict[str, Any]], List[Dict[str, Any]]]],
+    concurrency: int,
+    progress_path: Optional[Path],
+) -> Tuple[List[Dict[str, Any]], List[Dict[str, Any]]]:
+    results: Dict[int, Dict[str, Any]] = {}
+    rejected: List[Dict[str, Any]] = []
+    completed = 0
+    with ThreadPoolExecutor(max_workers=concurrency) as executor:
+        futures = {executor.submit(worker, index): index for index in indexes}
+        for future in as_completed(futures):
+            index, accepted_sample, rejected_attempts = future.result()
+            completed += 1
+            rejected.extend(rejected_attempts)
+            if accepted_sample is not None:
+                results[index] = accepted_sample
+            _write_progress(
+                progress_path,
+                total=len(indexes),
+                completed=completed,
+                accepted=len(results),
+                rejected=len(rejected),
+                status="running",
+            )
+    accepted = [results[index] for index in sorted(results)]
+    return accepted, rejected
+
+
+def _write_progress(
+    path: Optional[Path],
+    *,
+    total: int,
+    completed: int,
+    accepted: int,
+    rejected: int,
+    status: str,
+) -> None:
+    if path is None:
+        return
+    path.parent.mkdir(parents=True, exist_ok=True)
+    payload = {
+        "status": status,
+        "total": total,
+        "completed": completed,
+        "accepted": accepted,
+        "rejected": rejected,
+        "updated_at": datetime.now(timezone.utc).isoformat(),
+    }
+    write_json(path, payload)
 
 
 def _write_outputs(
