@@ -1,8 +1,15 @@
 from __future__ import annotations
 
 import unittest
+from pathlib import Path
+import re
+
+import yaml
 
 from event_stream_generator.judge.semantic_quality import score_semantic_quality
+
+
+ROOT = Path(__file__).resolve().parents[2]
 
 
 class SemanticQualityTests(unittest.TestCase):
@@ -54,6 +61,41 @@ class SemanticQualityTests(unittest.TestCase):
         self.assertIn("event mapping contains short phrases", result["issues"])
         self.assertIn("event mapping contains duplicate phrases", result["issues"])
         self.assertIn("relation explanations are too short or generic", result["issues"])
+
+    def test_configured_rule_based_templates_are_specific_enough_for_quality_gate(self) -> None:
+        templates = yaml.safe_load(
+            (ROOT / "event_stream_generator/config/semantic_templates.yaml").read_text(
+                encoding="utf-8"
+            )
+        )
+        failures = []
+        for domain, domain_templates in templates["domains"].items():
+            phrases = [
+                *domain_templates.get("event_phrases", []),
+                *domain_templates.get("background_phrases", []),
+            ]
+            for index, phrase in enumerate(phrases):
+                row = {
+                    "domain": domain,
+                    "semantic_scenario": {
+                        "scenario_description": (
+                            f"A concrete {domain} scenario links a source condition "
+                            "to a downstream operational response."
+                        ),
+                        "event_mapping": {"E0": phrase},
+                        "relation_explanations": [],
+                    },
+                }
+                result = score_semantic_quality(row)
+                if result["issues"]:
+                    failures.append((domain, index, phrase, result["issues"]))
+                word_count = len(
+                    re.findall(r"[A-Za-z0-9]+(?:[-'][A-Za-z0-9]+)?", phrase)
+                )
+                if not 4 <= word_count <= 8:
+                    failures.append((domain, index, phrase, [f"word_count={word_count}"]))
+
+        self.assertEqual(failures, [])
 
 
 if __name__ == "__main__":

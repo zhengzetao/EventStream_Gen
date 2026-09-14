@@ -3,159 +3,159 @@ fallback_domain: IT/System
 domains:
   IT/System:
     event_phrases:
-      - server CPU saturation
-      - request queue buildup
-      - API latency spike
-      - downstream service timeout
-      - alert escalation
-      - operator mitigation
-      - service recovery confirmation
-      - dependency retry storm
+      - database server CPU saturation during traffic spike
+      - frontend request queue buildup at gateway
+      - API latency spike in checkout service
+      - downstream service timeout on payment dependency
+      - operations alert escalation to incident channel
+      - operator mitigation through capacity throttling
+      - service recovery confirmation from monitoring dashboard
+      - dependency retry storm across worker pool
     background_phrases:
-      - unrelated monitoring warning
-      - routine health-check log
-      - minor retry notice
-      - scheduled metrics export
+      - unrelated monitoring warning from staging service
+      - routine health-check log from idle node
+      - minor retry notice for archived batch job
+      - scheduled metrics export from observability pipeline
   Finance:
     event_phrases:
-      - liquidity pressure increase
-      - abnormal order imbalance
-      - price volatility spike
-      - risk-limit warning
-      - trading halt review
-      - market stabilization
-      - settlement delay notice
-      - exposure reduction
+      - liquidity pressure increase in intraday funding desk
+      - abnormal order imbalance across equity basket
+      - price volatility spike in risk portfolio
+      - intraday risk-limit breach warning from desk
+      - trading halt review by market supervisor
+      - market stabilization after liquidity injection
+      - settlement delay notice from clearing system
+      - exposure reduction order from risk committee
     background_phrases:
-      - unrelated quote update
-      - routine settlement notice
-      - low-priority compliance alert
-      - reference rate refresh
+      - unrelated quote update from passive feed
+      - routine settlement notice for completed batch
+      - low-priority compliance alert on archived account
+      - reference rate refresh from benchmark service
   Healthcare:
     event_phrases:
       - patient risk indicator rise
-      - diagnostic queue delay
-      - medication review alert
-      - care escalation request
-      - treatment response update
-      - discharge readiness signal
-      - lab result anomaly
-      - follow-up scheduling event
+      - diagnostic queue delay in emergency department
+      - medication review alert for high-risk patient
+      - care escalation request to specialist team
+      - treatment response update from bedside monitor
+      - discharge readiness signal from care coordinator
+      - lab result anomaly in blood panel
+      - follow-up scheduling event for outpatient clinic
     background_phrases:
-      - routine vitals entry
-      - unrelated appointment reminder
-      - inventory restock notice
-      - administrative status update
+      - routine vitals entry from ward round
+      - unrelated appointment reminder from scheduling system
+      - inventory restock notice for supply cabinet
+      - administrative status update for insurance review
   Politics:
     event_phrases:
-      - policy proposal release
-      - committee review request
-      - stakeholder response surge
-      - negotiation delay
-      - amendment filing
-      - vote scheduling update
-      - public statement escalation
-      - implementation notice
+      - policy proposal release from ministry office
+      - committee review request for draft legislation
+      - stakeholder response surge across advocacy groups
+      - negotiation delay during coalition talks
+      - amendment filing by legislative sponsor
+      - vote scheduling update from assembly clerk
+      - public statement escalation by opposition spokesperson
+      - implementation notice from regulatory agency
     background_phrases:
-      - unrelated press briefing
-      - routine agenda update
-      - polling data refresh
-      - administrative filing notice
+      - unrelated press briefing from local official
+      - routine agenda update for committee calendar
+      - polling data refresh from survey vendor
+      - administrative filing notice from records office
   Social:
     event_phrases:
-      - initial topic spike
-      - resharing wave
-      - moderation review trigger
-      - community response escalation
-      - sentiment shift
-      - attention decay
-      - counter-narrative emergence
-      - platform notice
+      - initial topic spike around breaking post
+      - resharing wave across follower clusters
+      - moderation review trigger from report queue
+      - community response escalation in discussion thread
+      - sentiment shift after influencer commentary
+      - attention decay across recommendation feed
+      - counter-narrative emergence from opposing community
+      - platform notice about content visibility change
     background_phrases:
-      - unrelated status post
-      - routine notification
-      - low-engagement comment
-      - profile update event
+      - unrelated status post from dormant account
+      - routine notification from platform digest
+      - low-engagement comment under archived thread
+      - profile update event from unrelated user
   Supply Chain:
     event_phrases:
-      - supplier delay notice
-      - inventory buffer reduction
-      - production schedule adjustment
-      - logistics rerouting
-      - downstream fulfillment delay
-      - replenishment order creation
-      - warehouse congestion
-      - delivery recovery update
+      - supplier delay notice for critical component
+      - inventory buffer reduction at regional warehouse
+      - production schedule adjustment on assembly line
+      - logistics rerouting through alternate distribution hub
+      - downstream fulfillment delay for priority orders
+      - replenishment order creation by planning system
+      - warehouse congestion at outbound loading dock
+      - delivery recovery update from carrier control tower
     background_phrases:
-      - routine stock count
-      - unrelated shipment scan
-      - vendor catalog update
-      - scheduled demand forecast refresh
+      - routine stock count in spare parts aisle
+      - unrelated shipment scan at crossdock terminal
+      - vendor catalog update from procurement portal
+      - scheduled demand forecast refresh for next quarter
   Transportation:
     event_phrases:
-      - vehicle collision
-      - congestion onset
-      - downstream congestion propagation
+      - multi-vehicle collision blocking arterial lanes
+      - congestion onset near incident corridor
+      - downstream congestion propagation through arterial corridor
       - normal traffic flow restoration
-      - heavy rain onset
-      - heavy rain clearance
-      - planned road closure
-      - planned road reopening
-      - road capacity reduction
-      - queue formation
-      - route diversion
-      - incident response dispatch
-      - passenger delay accumulation
-      - signal timing adjustment
+      - heavy rain onset reducing road visibility
+      - heavy rain clearance after drainage response
+      - planned road closure for utility repair
+      - planned road reopening after safety inspection
+      - road capacity reduction at merge segment
+      - queue formation at upstream bottleneck
+      - route diversion through parallel corridor
+      - incident response dispatch from traffic control
+      - passenger delay accumulation at transit hub
+      - signal timing adjustment by control center
     background_phrases:
-      - unrelated sensor reading
-      - routine schedule update
-      - minor service notice
-      - background traffic measurement
+      - unrelated sensor reading from adjacent route
+      - routine schedule update from transit operator
+      - minor service notice for parking facility
+      - background traffic measurement from arterial detector
       - routine roadway detector heartbeat
       - unrelated transit dispatch update
   Industrial:
     event_phrases:
-      - equipment vibration anomaly
-      - inspection alarm
-      - production line slowdown
-      - maintenance dispatch
-      - process stabilization
-      - quality-control hold
-      - component replacement
-      - output recovery
+      - equipment vibration anomaly on rotating pump
+      - inspection alarm from line control panel
+      - production line slowdown after equipment warning
+      - maintenance dispatch for affected machine cell
+      - process stabilization after control adjustment
+      - quality-control hold on suspect product batch
+      - component replacement by maintenance technician
+      - output recovery after machine recalibration
     background_phrases:
-      - routine telemetry sample
-      - unrelated inventory scan
-      - shift handover note
-      - scheduled safety checklist
+      - routine telemetry sample from standby equipment
+      - unrelated inventory scan in tool crib
+      - shift handover note from prior crew
+      - scheduled safety checklist for inspection team
   Cybersecurity:
     event_phrases:
-      - suspicious login burst
-      - privilege escalation attempt
-      - lateral movement signal
-      - data access anomaly
-      - containment rule activation
-      - incident response escalation
-      - credential reset event
-      - threat activity reduction
+      - suspicious login burst from external address
+      - privilege escalation attempt on admin console
+      - lateral movement signal across internal subnet
+      - data access anomaly in protected repository
+      - containment rule activation on endpoint fleet
+      - incident response escalation to security operations
+      - credential reset event for compromised account
+      - threat activity reduction after network isolation
     background_phrases:
-      - routine vulnerability scan
-      - unrelated firewall log
-      - scheduled patch notice
-      - benign authentication event
+      - routine vulnerability scan from approved scanner
+      - unrelated firewall log from public gateway
+      - scheduled patch notice for managed workstation
+      - benign authentication event from service account
   Scientific Process:
     event_phrases:
-      - experimental condition change
-      - sensor reading deviation
-      - reaction rate shift
-      - intermediate state observation
-      - calibration adjustment
-      - measurement stabilization
-      - anomaly review trigger
-      - final observation update
+      - experimental condition change in temperature chamber
+      - sensor reading deviation from calibrated probe
+      - reaction rate shift in monitored sample
+      - intermediate state observation by imaging instrument
+      - calibration adjustment for measurement baseline
+      - measurement stabilization after instrument correction
+      - anomaly review trigger from analysis pipeline
+      - final observation update in experiment logbook
     background_phrases:
-      - routine instrument heartbeat
-      - unrelated sample registration
-      - scheduled calibration log
-      - ambient condition note
+      - routine instrument heartbeat from standby spectrometer
+      - unrelated sample registration in lab inventory
+      - scheduled calibration log from reference device
+      - ambient condition note from facility sensor

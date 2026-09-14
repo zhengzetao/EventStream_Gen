@@ -13,9 +13,9 @@ class TransportationLegacyMigrationTests(unittest.TestCase):
     def test_transportation_semantic_templates_include_legacy_event_vocabulary(self) -> None:
         templates = load_yaml(CONFIG_DIR / "semantic_templates.yaml")
         transportation = templates["domains"]["Transportation"]
-        phrases = set(transportation["event_phrases"])
+        phrase_text = "\n".join(transportation["event_phrases"]).lower()
 
-        expected_phrases = {
+        expected_legacy_concepts = {
             "vehicle collision",
             "congestion onset",
             "normal traffic flow restoration",
@@ -24,7 +24,12 @@ class TransportationLegacyMigrationTests(unittest.TestCase):
             "planned road closure",
             "planned road reopening",
         }
-        self.assertTrue(expected_phrases <= phrases)
+        missing = [
+            concept
+            for concept in expected_legacy_concepts
+            if concept not in phrase_text
+        ]
+        self.assertEqual(missing, [])
 
     def test_transportation_example_config_preserves_legacy_scenario_weights(self) -> None:
         config = load_yaml(CONFIG_DIR / "examples" / "transportation_accident.yaml")
