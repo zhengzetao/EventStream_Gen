@@ -1,7 +1,9 @@
 from __future__ import annotations
 
 import sys
+import tempfile
 import unittest
+from pathlib import Path
 from unittest.mock import patch
 
 from event_stream_generator import cli
@@ -173,6 +175,30 @@ class CliDispatchTests(unittest.TestCase):
         self.assertIn("Transportation", called[0][1])
         self.assertIn("--output", called[0][1])
         self.assertIn("data/override.jsonl", called[0][1])
+
+    def test_calibrate_dataset_config_is_forwarded_to_dataset_calibrator(self) -> None:
+        called = []
+
+        with tempfile.TemporaryDirectory() as tmp:
+            config_path = Path(tmp) / "calibration.yaml"
+            config_path.write_text(
+                "mode: calibrate-dataset\n"
+                "adapter: taxi_pro\n"
+                "domain: Transportation\n",
+                encoding="utf-8",
+            )
+
+            result = cli.main(
+                ["--mode", "calibrate-dataset", "--config", str(config_path)],
+                runner=lambda module_name, forwarded_args: called.append(
+                    (module_name, forwarded_args)
+                )
+                or 0,
+            )
+
+        self.assertEqual(result, 0)
+        self.assertEqual(called[0][0], "event_stream_generator.scripts.calibrate_dataset")
+        self.assertEqual(called[0][1], ["--config", str(config_path)])
 
 
 if __name__ == "__main__":

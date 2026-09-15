@@ -1,0 +1,12 @@
+mode: calibrate-dataset
+dataset_name: political_gdelt_actor_pair
+adapter: gdelt
+domain: Politics
+input_path: data/calibration/raw/political_events/20260601.export.CSV
+prepared_output: data/calibration/prepared/political_gdelt_pipeline.csv
+prior_output: data/calibration/priors/political_gdelt_pipeline_prior.json
+report_output: data/calibration/reports/political_gdelt_pipeline_report.json
+min_transition_samples: 10
+adapter_options:
+  min_events_per_stream: 3
+  max_events_per_stream: 300

@@ -19,6 +19,7 @@ MODE_TO_MODULE = {
     "generic": "event_stream_generator.scripts.generate_generic",
     "calibrated": "event_stream_generator.scripts.generate_calibrated",
     "calibrate": "event_stream_generator.scripts.calibrate_events",
+    "calibrate-dataset": "event_stream_generator.scripts.calibrate_dataset",
     "calibrate-hdfs": "event_stream_generator.scripts.calibrate_hdfs",
     "evaluate": "event_stream_generator.scripts.evaluate_generation",
     "evaluate-llm-semantics": "event_stream_generator.scripts.evaluate_llm_semantics",
@@ -45,11 +46,11 @@ def main(argv: Sequence[str] | None = None, runner: ScriptRunner | None = None) 
     )
     parsed, forwarded_args = parser.parse_known_args(args)
     if parsed.config:
-        if parsed.mode == "build-dataset" or (
-            parsed.mode is None and _config_mode(Path(parsed.config)) == "build-dataset"
-        ):
+        config_passthrough_modes = {"build-dataset", "calibrate-dataset"}
+        config_mode = _config_mode(Path(parsed.config)) if parsed.mode is None else parsed.mode
+        if config_mode in config_passthrough_modes:
             dispatch = runner or run_script_main
-            return dispatch(MODE_TO_MODULE["build-dataset"], ["--config", parsed.config, *forwarded_args])
+            return dispatch(MODE_TO_MODULE[config_mode], ["--config", parsed.config, *forwarded_args])
         config_args = _args_from_config(Path(parsed.config))
         if parsed.mode:
             config_args = ["--mode", parsed.mode, *config_args]

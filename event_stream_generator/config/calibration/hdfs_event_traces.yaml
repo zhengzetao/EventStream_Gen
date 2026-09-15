@@ -1,0 +1,11 @@
+mode: calibrate-dataset
+dataset_name: hdfs_event_traces_10k
+adapter: hdfs_event_traces
+domain: HDFS
+input_path: data/calibration/raw/hdfs_v1/Event_traces.csv
+prepared_output: data/calibration/prepared/hdfs_event_traces_10k_pipeline.csv
+prior_output: data/calibration/priors/hdfs_event_traces_10k_pipeline_prior.json
+report_output: data/calibration/reports/hdfs_event_traces_10k_pipeline_report.json
+min_transition_samples: 20
+adapter_options:
+  max_streams: 10000
