@@ -14,6 +14,15 @@ stream:
   min_window: 10.0
   max_generation_retry: 5
 
+calibrated_generation:
+  use_second_order: true
+  smoothing_alpha: 0.01
+  temperature: 1.0
+
+validation:
+  temporal:
+    calibration_aware: true
+
 background:
   density: medium
   rates:

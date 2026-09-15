@@ -43,6 +43,12 @@ def generate_calibrated_event_stream(
             "generation_mode": "calibrated",
             "calibration_domain": calibration_prior.get("domain", "Calibrated"),
             "calibration_type": calibration_prior.get("calibration_type"),
+            "calibration_profile": {
+                "min_positive_delta_t": calibration_prior.get("delta_t_profile", {}).get("min", 0.0),
+                "p95_delta_t": calibration_prior.get("delta_t_profile", {}).get("p95", 0.0),
+                "event_count": calibration_prior.get("event_count", 0),
+                "stream_count": calibration_prior.get("stream_count", 0),
+            },
         }
     )
     return stream
@@ -59,7 +65,12 @@ def build_calibrated_mechanism(
 ) -> EventMechanism:
     if topology == "chain":
         length = _sample_chain_length(calibration_prior, config, rng)
-        event_types = _sample_event_type_chain(calibration_prior, length, rng)
+        event_types = _sample_event_type_chain(
+            calibration_prior,
+            length,
+            rng,
+            config.get("calibrated_generation", {}),
+        )
         return _chain_from_event_types(
             stream_id, calibration_prior, event_types, mechanism_type
         )
@@ -82,15 +93,27 @@ def _sample_chain_length(
 
 
 def _sample_event_type_chain(
-    calibration_prior: Dict[str, Any], length: int, rng: random.Random
+    calibration_prior: Dict[str, Any],
+    length: int,
+    rng: random.Random,
+    options: Dict[str, Any] | None = None,
 ) -> List[str]:
+    options = options or {}
     transitions = calibration_prior.get("first_order_transitions", {})
     if not transitions:
         raise ValueError("calibration prior has no first_order_transitions")
     current = _sample_start_event(calibration_prior, rng)
     sequence = [current]
     while len(sequence) < length:
-        current = _sample_next_event(transitions, current, rng)
+        previous = sequence[-2] if len(sequence) >= 2 else None
+        current = _sample_next_event(
+            transitions,
+            current,
+            rng,
+            options,
+            previous_event=previous,
+            second_order_transitions=calibration_prior.get("second_order_transitions", {}),
+        )
         sequence.append(current)
     return sequence
 
@@ -116,15 +139,38 @@ def _sample_next_event(
     transitions: Dict[str, Dict[str, Dict[str, Any]]],
     current: str,
     rng: random.Random,
+    options: Dict[str, Any] | None = None,
+    *,
+    previous_event: str | None = None,
+    second_order_transitions: Dict[str, Dict[str, Dict[str, Any]]] | None = None,
 ) -> str:
+    options = options or {}
+    if (
+        options.get("use_second_order", True)
+        and previous_event is not None
+        and second_order_transitions
+    ):
+        second_key = f"{previous_event}|{current}"
+        if second_order_transitions.get(second_key):
+            return _weighted_choice(
+                _transition_weights(
+                    second_order_transitions[second_key],
+                    all_event_types=transitions.keys(),
+                    smoothing_alpha=float(options.get("smoothing_alpha", 0.0)),
+                    temperature=float(options.get("temperature", 1.0)),
+                ),
+                rng,
+            )
     targets = transitions.get(current)
     if not targets:
         return _weighted_choice({key: 1.0 for key in transitions}, rng)
     return _weighted_choice(
-        {
-            target: float(record.get("probability", record.get("count", 1.0)))
-            for target, record in targets.items()
-        },
+        _transition_weights(
+            targets,
+            all_event_types=transitions.keys(),
+            smoothing_alpha=float(options.get("smoothing_alpha", 0.0)),
+            temperature=float(options.get("temperature", 1.0)),
+        ),
         rng,
     )
 
@@ -186,7 +232,14 @@ def _sample_event_type_tree(
         if not candidates:
             break
         parent = rng.choice(candidates)
-        event_types.append(_sample_next_event(transitions, event_types[parent], rng))
+        event_types.append(
+            _sample_next_event(
+                transitions,
+                event_types[parent],
+                rng,
+                config.get("calibrated_generation", {}),
+            )
+        )
         edges.append((parent, index))
         child_counts[parent] = child_counts.get(parent, 0) + 1
         child_counts[index] = 0
@@ -245,9 +298,32 @@ def _edge_from_transition(
         source=source_node,
         target=target_node,
         relation_type="direct_trigger",
-        regime=transition.get("regime", "generic_backoff"),
-        regime_params=dict(transition.get("params", {})),
+        regime=transition.get("effective_regime", transition.get("regime", "generic_backoff")),
+        regime_params=dict(transition.get("effective_params", transition.get("params", {}))),
     )
+
+
+def _transition_weights(
+    targets: Dict[str, Dict[str, Any]],
+    *,
+    all_event_types,
+    smoothing_alpha: float,
+    temperature: float,
+) -> Dict[str, float]:
+    weights = {
+        target: float(record.get("probability", record.get("count", 1.0)))
+        for target, record in targets.items()
+    }
+    if smoothing_alpha > 0.0:
+        for event_type in all_event_types:
+            weights[event_type] = weights.get(event_type, 0.0) + smoothing_alpha
+    if temperature and temperature > 0.0 and abs(temperature - 1.0) > 1e-12:
+        exponent = 1.0 / temperature
+        weights = {
+            event_type: max(weight, 0.0) ** exponent
+            for event_type, weight in weights.items()
+        }
+    return weights
 
 
 def _weighted_choice(weights: Dict[str, float], rng: random.Random) -> str:

@@ -32,6 +32,7 @@ def run_calibration_evaluation_pipeline(config_path: str | Path) -> Dict[str, An
     synthetic_domain = _generation_domain(config, evaluation)
     semantic_mode = str(evaluation.get("semantic_mode", "none"))
     qa_mode = str(evaluation.get("qa_mode", "none"))
+    calibrated_generation = dict(evaluation.get("calibrated_generation") or {})
     generic_output = _resolve_path(evaluation.get("generic_output", output_dir / "generic.jsonl"))
     calibrated_output = _resolve_path(
         evaluation.get("calibrated_output", output_dir / "calibrated.jsonl")
@@ -80,6 +81,7 @@ def run_calibration_evaluation_pipeline(config_path: str | Path) -> Dict[str, An
             semantic_mode,
             "--qa-mode",
             qa_mode,
+            *_calibrated_generation_args(calibrated_generation),
         ],
     )
     comparison, rows = compare_generation_outputs(
@@ -105,6 +107,7 @@ def run_calibration_evaluation_pipeline(config_path: str | Path) -> Dict[str, An
             "mechanism_type": mechanism_type,
             "generic_output": str(generic_output),
             "calibrated_output": str(calibrated_output),
+            "calibrated_generation": calibrated_generation,
         },
         "comparison_json": str(comparison_json),
         "comparison_csv": str(comparison_csv),
@@ -158,6 +161,22 @@ def _run_script(module_name: str, forwarded_args: List[str]) -> None:
         sys.argv = previous_argv
     if int(result or 0) != 0:
         raise RuntimeError(f"{module_name} failed with exit code {result}")
+
+
+def _calibrated_generation_args(options: Dict[str, Any]) -> List[str]:
+    args: List[str] = []
+    if "use_second_order" in options:
+        args.extend(
+            [
+                "--calibrated-use-second-order",
+                "true" if bool(options["use_second_order"]) else "false",
+            ]
+        )
+    if "smoothing_alpha" in options:
+        args.extend(["--calibrated-smoothing-alpha", str(options["smoothing_alpha"])])
+    if "temperature" in options:
+        args.extend(["--calibrated-temperature", str(options["temperature"])])
+    return args
 
 
 def _write_rows(path: Path, rows: List[Dict[str, Any]]) -> None:

@@ -74,6 +74,59 @@ class CalibrationEvaluationPipelineTests(unittest.TestCase):
             self.assertIn("calibration_effect", result)
             self.assertIn("inter_event_time_ks", result["calibration_effect"])
 
+    def test_pipeline_forwards_calibrated_generation_options_to_generated_config(self):
+        with tempfile.TemporaryDirectory() as tmp:
+            root = Path(tmp)
+            raw = root / "events.csv"
+            with raw.open("w", encoding="utf-8", newline="") as handle:
+                writer = csv.DictWriter(
+                    handle,
+                    fieldnames=["timestamp", "stream_id", "event_type"],
+                )
+                writer.writeheader()
+                for stream_id in ["s1", "s2"]:
+                    writer.writerow(
+                        {"timestamp": 0.0, "stream_id": stream_id, "event_type": "A"}
+                    )
+                    writer.writerow(
+                        {"timestamp": 1.0, "stream_id": stream_id, "event_type": "B"}
+                    )
+            config = root / "eval.yaml"
+            output_dir = root / "eval"
+            config.write_text(
+                "\n".join(
+                    [
+                        "mode: evaluate-calibration-dataset",
+                        "dataset_name: option-test",
+                        "adapter: standard_csv",
+                        "domain: IT/System",
+                        f"input_path: {raw}",
+                        f"prepared_output: {root / 'prepared.csv'}",
+                        f"prior_output: {root / 'prior.json'}",
+                        "min_transition_samples: 2",
+                        "evaluation:",
+                        f"  output_dir: {output_dir}",
+                        "  num_samples: 2",
+                        "  seed: 17",
+                        "  calibrated_generation:",
+                        "    use_second_order: false",
+                        "    smoothing_alpha: 0.0",
+                    ]
+                ),
+                encoding="utf-8",
+            )
+
+            result = run_calibration_evaluation_pipeline(config)
+
+            self.assertEqual(
+                result["generation"]["calibrated_generation"]["use_second_order"],
+                False,
+            )
+            self.assertEqual(
+                result["generation"]["calibrated_generation"]["smoothing_alpha"],
+                0.0,
+            )
+
     def test_cli_dispatches_evaluate_calibration_dataset_config(self):
         called = []
 

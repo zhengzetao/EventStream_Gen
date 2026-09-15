@@ -44,6 +44,21 @@ def main() -> int:
     parser.add_argument("--prior", default=str(default_config_dir / "generic_prior.yaml"))
     parser.add_argument("--topology", choices=["chain", "tree"], default="chain")
     parser.add_argument("--mechanism-type", default="multi_hop_propagation")
+    parser.add_argument(
+        "--calibrated-use-second-order",
+        choices=["true", "false"],
+        help="Override calibrated_generation.use_second_order from the prior config.",
+    )
+    parser.add_argument(
+        "--calibrated-smoothing-alpha",
+        type=float,
+        help="Override calibrated_generation.smoothing_alpha from the prior config.",
+    )
+    parser.add_argument(
+        "--calibrated-temperature",
+        type=float,
+        help="Override calibrated_generation.temperature from the prior config.",
+    )
     parser.add_argument("--semantic-mode", choices=["none", "rule", "llm"], default="none")
     parser.add_argument(
         "--semantic-judge-mode",
@@ -80,6 +95,7 @@ def main() -> int:
         load_yaml(args.prior),
         _load_calibration_prior(args.calibration_prior),
     )
+    _apply_calibrated_generation_overrides(config, args)
     calibration_prior = _load_calibration_prior(args.calibration_prior)
     semantic_templates = (
         load_yaml(args.semantic_templates) if args.semantic_mode == "rule" else {}
@@ -213,6 +229,16 @@ def main() -> int:
 def _load_calibration_prior(path: str | Path) -> Dict[str, Any]:
     with Path(path).open("r", encoding="utf-8") as handle:
         return json.load(handle)
+
+
+def _apply_calibrated_generation_overrides(config: Dict[str, Any], args) -> None:
+    options = config.setdefault("calibrated_generation", {})
+    if args.calibrated_use_second_order is not None:
+        options["use_second_order"] = args.calibrated_use_second_order == "true"
+    if args.calibrated_smoothing_alpha is not None:
+        options["smoothing_alpha"] = args.calibrated_smoothing_alpha
+    if args.calibrated_temperature is not None:
+        options["temperature"] = args.calibrated_temperature
 
 
 def _adapt_config_for_calibration(

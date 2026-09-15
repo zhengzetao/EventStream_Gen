@@ -64,10 +64,12 @@ def validate_temporal(
     timestamps = [event.timestamp for event in stream.events]
     if timestamps != sorted(timestamps):
         errors.append("events are not sorted by timestamp")
+    min_gap_threshold = _min_gap_threshold(stream, config)
     if len(stream.events) >= 2:
         gaps = [right - left for left, right in zip(timestamps, timestamps[1:])]
-        if gaps and min(gaps) < 1e-12:
+        if gaps and min(gaps) < min_gap_threshold:
             errors.append("sequence is too dense")
+    metrics["min_gap_threshold"] = min_gap_threshold
     _validate_event_count(stream, config, errors)
     _validate_background_density(metrics["background_ratio"], stream, config, errors)
     return ValidationResult(approved=not errors, errors=errors, metrics=metrics)
@@ -103,3 +105,19 @@ def _validate_background_density(
     lower, upper = ranges[density]
     if background_ratio < float(lower) or background_ratio > float(upper):
         errors.append("background ratio outside configured range")
+
+
+def _min_gap_threshold(stream: EventStream, config: Dict[str, Any]) -> float:
+    default = 1e-12
+    temporal_config = config.get("validation", {}).get("temporal", {})
+    if "min_gap_threshold" in temporal_config:
+        return float(temporal_config["min_gap_threshold"])
+    if (
+        temporal_config.get("calibration_aware")
+        and stream.metadata.get("generation_mode") == "calibrated"
+    ):
+        profile = stream.metadata.get("calibration_profile", {})
+        min_positive = profile.get("min_positive_delta_t")
+        if isinstance(min_positive, (int, float)) and min_positive > 0.0:
+            return round(min(default, max(float(min_positive) * 0.1, 0.0)), 18)
+    return default

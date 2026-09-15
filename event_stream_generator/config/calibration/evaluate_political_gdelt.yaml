@@ -18,3 +18,7 @@ evaluation:
   mechanism_type: multi_hop_propagation
   semantic_mode: none
   qa_mode: none
+  calibrated_generation:
+    use_second_order: false
+    smoothing_alpha: 0.0
+    temperature: 1.0
