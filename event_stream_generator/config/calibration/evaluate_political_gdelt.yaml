@@ -1,0 +1,20 @@
+mode: evaluate-calibration-dataset
+dataset_name: political_gdelt_actor_pair
+adapter: gdelt
+domain: Politics
+input_path: data/calibration/raw/political_events/20260601.export.CSV
+prepared_output: data/calibration/prepared/political_gdelt_pipeline.csv
+prior_output: data/calibration/priors/political_gdelt_pipeline_prior.json
+report_output: data/calibration/reports/political_gdelt_pipeline_report.json
+min_transition_samples: 10
+adapter_options:
+  min_events_per_stream: 3
+  max_events_per_stream: 300
+evaluation:
+  output_dir: data/calibration/evaluation/political_gdelt_actor_pair
+  num_samples: 50
+  seed: 303
+  topology: chain
+  mechanism_type: multi_hop_propagation
+  semantic_mode: none
+  qa_mode: none

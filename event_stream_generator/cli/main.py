@@ -22,6 +22,7 @@ MODE_TO_MODULE = {
     "calibrate-dataset": "event_stream_generator.scripts.calibrate_dataset",
     "calibrate-hdfs": "event_stream_generator.scripts.calibrate_hdfs",
     "evaluate": "event_stream_generator.scripts.evaluate_generation",
+    "evaluate-calibration-dataset": "event_stream_generator.scripts.evaluate_calibration_dataset",
     "evaluate-llm-semantics": "event_stream_generator.scripts.evaluate_llm_semantics",
     "export-training": "event_stream_generator.scripts.export_training",
 }
@@ -46,7 +47,11 @@ def main(argv: Sequence[str] | None = None, runner: ScriptRunner | None = None) 
     )
     parsed, forwarded_args = parser.parse_known_args(args)
     if parsed.config:
-        config_passthrough_modes = {"build-dataset", "calibrate-dataset"}
+        config_passthrough_modes = {
+            "build-dataset",
+            "calibrate-dataset",
+            "evaluate-calibration-dataset",
+        }
         config_mode = _config_mode(Path(parsed.config)) if parsed.mode is None else parsed.mode
         if config_mode in config_passthrough_modes:
             dispatch = runner or run_script_main

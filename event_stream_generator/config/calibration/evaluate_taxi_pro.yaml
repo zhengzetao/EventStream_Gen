@@ -1,0 +1,18 @@
+mode: evaluate-calibration-dataset
+dataset_name: taxi_pro
+adapter: taxi_pro
+domain: Transportation
+input_path: data/calibration/raw/taxi_pro/data
+prepared_output: data/calibration/prepared/taxi_pro_pipeline.csv
+prior_output: data/calibration/priors/taxi_pro_pipeline_prior.json
+report_output: data/calibration/reports/taxi_pro_pipeline_report.json
+min_transition_samples: 10
+adapter_options: {}
+evaluation:
+  output_dir: data/calibration/evaluation/taxi_pro
+  num_samples: 50
+  seed: 202
+  topology: chain
+  mechanism_type: multi_hop_propagation
+  semantic_mode: none
+  qa_mode: none
