@@ -1,0 +1,714 @@
+{
+  "purpose": "Minimal examples for understanding skeleton generation, semantic wrapping, and QA generation from simulator ground truth.",
+  "important_notes": [
+    "These files are small illustrative examples for GitHub only; full datasets and raw data remain on the server.",
+    "The generic example is generated without real-data calibration.",
+    "The calibrated example is generated with a Taxi-Pro real-data calibration prior, then truncated for readability.",
+    "QA answers are generated from ground_truth, not decided by semantic text or an LLM."
+  ],
+  "examples": [
+    {
+      "example_type": "generic_uncalibrated",
+      "description": "No real event-stream data is used; simulator relies on taxonomy and generic priors.",
+      "stream_summary": {
+        "stream_id": "stream_000000",
+        "domain": "IT/System",
+        "topology": "chain",
+        "mechanism_type": "multi_hop_propagation",
+        "primary_regime": "exponential",
+        "causal_event_count": 5,
+        "background_event_count": 2,
+        "is_truncated_for_readability": false
+      },
+      "skeleton": {
+        "nodes_sample": [
+          {
+            "abstract_type": "E0",
+            "node_id": "E0",
+            "role": "root"
+          },
+          {
+            "abstract_type": "E1",
+            "node_id": "E1",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "E2",
+            "node_id": "E2",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "E3",
+            "node_id": "E3",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "E4",
+            "node_id": "E4",
+            "role": "target"
+          }
+        ],
+        "edges_sample": [
+          {
+            "regime": "exponential",
+            "regime_params": {},
+            "relation_type": "direct_trigger",
+            "source": "E0",
+            "target": "E1"
+          },
+          {
+            "regime": "exponential",
+            "regime_params": {},
+            "relation_type": "direct_trigger",
+            "source": "E1",
+            "target": "E2"
+          },
+          {
+            "regime": "exponential",
+            "regime_params": {},
+            "relation_type": "direct_trigger",
+            "source": "E2",
+            "target": "E3"
+          },
+          {
+            "regime": "exponential",
+            "regime_params": {},
+            "relation_type": "direct_trigger",
+            "source": "E3",
+            "target": "E4"
+          }
+        ]
+      },
+      "events_sample": [
+        {
+          "event_id": 0,
+          "timestamp": 0.0,
+          "abstract_type": "E0",
+          "semantic_type": "database server CPU saturation during traffic spike",
+          "parent_id": null,
+          "root_id": 0,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": null,
+          "is_background": false,
+          "cascade_depth": 0,
+          "distractor_type": null
+        },
+        {
+          "event_id": 1,
+          "timestamp": 0.025328839,
+          "abstract_type": "E1",
+          "semantic_type": "frontend request queue buildup at gateway",
+          "parent_id": 0,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.025328839,
+          "regime": "exponential",
+          "is_background": false,
+          "cascade_depth": 1,
+          "distractor_type": null
+        },
+        {
+          "event_id": 2,
+          "timestamp": 0.372682828,
+          "abstract_type": "E2",
+          "semantic_type": "API latency spike in checkout service",
+          "parent_id": 1,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.347353989,
+          "regime": "exponential",
+          "is_background": false,
+          "cascade_depth": 2,
+          "distractor_type": null
+        },
+        {
+          "event_id": 3,
+          "timestamp": 0.563132812,
+          "abstract_type": "E3",
+          "semantic_type": "downstream service timeout on payment dependency",
+          "parent_id": 2,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.190449984,
+          "regime": "exponential",
+          "is_background": false,
+          "cascade_depth": 3,
+          "distractor_type": null
+        },
+        {
+          "event_id": 4,
+          "timestamp": 1.638008506,
+          "abstract_type": "E4",
+          "semantic_type": "operations alert escalation to incident channel",
+          "parent_id": 3,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 1.074875694,
+          "regime": "exponential",
+          "is_background": false,
+          "cascade_depth": 4,
+          "distractor_type": null
+        },
+        {
+          "event_id": 6,
+          "timestamp": 0.012664419,
+          "abstract_type": "BG1",
+          "semantic_type": "unrelated monitoring warning from staging service",
+          "parent_id": null,
+          "root_id": null,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": "exponential",
+          "is_background": true,
+          "cascade_depth": 0,
+          "distractor_type": "near_time_unrelated"
+        },
+        {
+          "event_id": 5,
+          "timestamp": 7.527820059,
+          "abstract_type": "BG0",
+          "semantic_type": "routine health-check log from idle node",
+          "parent_id": null,
+          "root_id": null,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": "exponential",
+          "is_background": true,
+          "cascade_depth": 0,
+          "distractor_type": "near_time_unrelated"
+        }
+      ],
+      "ground_truth_sample": {
+        "parents": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3
+        },
+        "roots": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0
+        },
+        "background_event_ids_sample": [
+          5,
+          6
+        ]
+      },
+      "semantic_scenario_sample": {
+        "instantiation_method": "rule_based_template_v1",
+        "scenario_description": "In the IT/System domain, a chain multi_hop_propagation event stream links database server CPU saturation during traffic spike; frontend request queue buildup at gateway; API latency spike in checkout service; downstream service timeout on payment dependency; operations alert escalation to incident channel.",
+        "event_mapping_sample": {
+          "E0": "database server CPU saturation during traffic spike",
+          "E1": "frontend request queue buildup at gateway",
+          "E2": "API latency spike in checkout service",
+          "E3": "downstream service timeout on payment dependency",
+          "E4": "operations alert escalation to incident channel"
+        },
+        "relation_explanations_sample": [
+          {
+            "explanation": "database server CPU saturation during traffic spike has a direct trigger relation to frontend request queue buildup at gateway.",
+            "relation_type": "direct_trigger",
+            "source": "E0",
+            "target": "E1"
+          },
+          {
+            "explanation": "frontend request queue buildup at gateway has a direct trigger relation to API latency spike in checkout service.",
+            "relation_type": "direct_trigger",
+            "source": "E1",
+            "target": "E2"
+          },
+          {
+            "explanation": "API latency spike in checkout service has a direct trigger relation to downstream service timeout on payment dependency.",
+            "relation_type": "direct_trigger",
+            "source": "E2",
+            "target": "E3"
+          },
+          {
+            "explanation": "downstream service timeout on payment dependency has a direct trigger relation to operations alert escalation to incident channel.",
+            "relation_type": "direct_trigger",
+            "source": "E3",
+            "target": "E4"
+          }
+        ]
+      },
+      "qa_pairs_sample": [
+        {
+          "qa_type": "direct_parent",
+          "question": "What is the direct parent of event 4 [E4] (operations alert escalation to incident channel)?",
+          "answer": 3,
+          "answer_source": "ground_truth.parents",
+          "target_event_id": 4
+        },
+        {
+          "qa_type": "root_cause",
+          "question": "What is the root cause event of event 4 [E4] (operations alert escalation to incident channel)?",
+          "answer": 0,
+          "answer_source": "ground_truth.roots",
+          "target_event_id": 4
+        },
+        {
+          "qa_type": "temporal_order",
+          "question": "List all event IDs in ascending timestamp order.",
+          "answer": [
+            0,
+            6,
+            1,
+            2,
+            3,
+            4,
+            5
+          ],
+          "answer_source": "events.timestamp",
+          "target_event_id": null
+        },
+        {
+          "qa_type": "time_delay",
+          "question": "What is the time delay from event 0 to event 1?",
+          "answer": 0.025328839,
+          "answer_source": "events.timestamp_difference",
+          "target_event_id": 1,
+          "source_event_id": 0
+        },
+        {
+          "qa_type": "causal_path",
+          "question": "What is the causal path from root to event 4 [E4] (operations alert escalation to incident channel)?",
+          "answer": [
+            0,
+            1,
+            2,
+            3,
+            4
+          ],
+          "answer_source": "ground_truth.paths",
+          "target_event_id": 4
+        }
+      ],
+      "validation_summary": {
+        "label": true,
+        "semantic": true,
+        "structural": true,
+        "temporal": true
+      },
+      "metadata_sample": {
+        "event_id_order_independent_of_timestamp": true,
+        "semantic_status": "instantiated",
+        "time_unit": "abstract_float"
+      }
+    },
+    {
+      "example_type": "calibrated_taxi_pro",
+      "description": "Uses a Taxi-Pro calibration prior extracted from real event streams; shown fields are truncated for readability.",
+      "stream_summary": {
+        "stream_id": "calibrated_000000",
+        "domain": "Transportation",
+        "topology": "chain",
+        "mechanism_type": "multi_hop_propagation",
+        "primary_regime": "calibrated_transition",
+        "causal_event_count": 36,
+        "background_event_count": 4,
+        "is_truncated_for_readability": true
+      },
+      "skeleton": {
+        "nodes_sample": [
+          {
+            "abstract_type": "taxi_event_3",
+            "node_id": "E0",
+            "role": "root"
+          },
+          {
+            "abstract_type": "taxi_event_2",
+            "node_id": "E1",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "taxi_event_3",
+            "node_id": "E2",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "taxi_event_2",
+            "node_id": "E3",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "taxi_event_3",
+            "node_id": "E4",
+            "role": "intermediate"
+          },
+          {
+            "abstract_type": "taxi_event_2",
+            "node_id": "E5",
+            "role": "intermediate"
+          }
+        ],
+        "edges_sample": [
+          {
+            "regime": "lognormal",
+            "regime_params": {
+              "mu": -2.402512708,
+              "sigma": 1.170965584
+            },
+            "relation_type": "direct_trigger",
+            "source": "E0",
+            "target": "E1"
+          },
+          {
+            "regime": "gamma",
+            "regime_params": {
+              "scale": 0.049040281,
+              "shape": 2.835773111
+            },
+            "relation_type": "direct_trigger",
+            "source": "E1",
+            "target": "E2"
+          },
+          {
+            "regime": "lognormal",
+            "regime_params": {
+              "mu": -2.402512708,
+              "sigma": 1.170965584
+            },
+            "relation_type": "direct_trigger",
+            "source": "E2",
+            "target": "E3"
+          },
+          {
+            "regime": "gamma",
+            "regime_params": {
+              "scale": 0.049040281,
+              "shape": 2.835773111
+            },
+            "relation_type": "direct_trigger",
+            "source": "E3",
+            "target": "E4"
+          },
+          {
+            "regime": "lognormal",
+            "regime_params": {
+              "mu": -2.402512708,
+              "sigma": 1.170965584
+            },
+            "relation_type": "direct_trigger",
+            "source": "E4",
+            "target": "E5"
+          }
+        ]
+      },
+      "events_sample": [
+        {
+          "event_id": 0,
+          "timestamp": 0.0,
+          "abstract_type": "taxi_event_3",
+          "semantic_type": "multi-vehicle collision blocking arterial lanes",
+          "parent_id": null,
+          "root_id": 0,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": null,
+          "is_background": false,
+          "cascade_depth": 0,
+          "distractor_type": null
+        },
+        {
+          "event_id": 1,
+          "timestamp": 0.010421451,
+          "abstract_type": "taxi_event_2",
+          "semantic_type": "congestion onset near incident corridor",
+          "parent_id": 0,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.010421451,
+          "regime": "lognormal",
+          "is_background": false,
+          "cascade_depth": 1,
+          "distractor_type": null
+        },
+        {
+          "event_id": 2,
+          "timestamp": 0.264926379,
+          "abstract_type": "taxi_event_3",
+          "semantic_type": "downstream congestion propagation through arterial corridor",
+          "parent_id": 1,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.254504928,
+          "regime": "gamma",
+          "is_background": false,
+          "cascade_depth": 2,
+          "distractor_type": null
+        },
+        {
+          "event_id": 3,
+          "timestamp": 0.308996985,
+          "abstract_type": "taxi_event_2",
+          "semantic_type": "normal traffic flow restoration",
+          "parent_id": 2,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.044070606,
+          "regime": "lognormal",
+          "is_background": false,
+          "cascade_depth": 3,
+          "distractor_type": null
+        },
+        {
+          "event_id": 4,
+          "timestamp": 0.515336352,
+          "abstract_type": "taxi_event_3",
+          "semantic_type": "heavy rain onset reducing road visibility",
+          "parent_id": 3,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.206339367,
+          "regime": "gamma",
+          "is_background": false,
+          "cascade_depth": 4,
+          "distractor_type": null
+        },
+        {
+          "event_id": 5,
+          "timestamp": 0.525244073,
+          "abstract_type": "taxi_event_2",
+          "semantic_type": "heavy rain clearance after drainage response",
+          "parent_id": 4,
+          "root_id": 0,
+          "relation_to_parent": "direct_trigger",
+          "delta_t_from_parent": 0.009907721,
+          "regime": "lognormal",
+          "is_background": false,
+          "cascade_depth": 5,
+          "distractor_type": null
+        },
+        {
+          "event_id": 39,
+          "timestamp": 0.005210725,
+          "abstract_type": "BG3",
+          "semantic_type": "unrelated sensor reading from adjacent route",
+          "parent_id": null,
+          "root_id": null,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": "exponential",
+          "is_background": true,
+          "cascade_depth": 0,
+          "distractor_type": "near_time_unrelated"
+        },
+        {
+          "event_id": 36,
+          "timestamp": 7.863335544,
+          "abstract_type": "BG0",
+          "semantic_type": "routine schedule update from transit operator",
+          "parent_id": null,
+          "root_id": null,
+          "relation_to_parent": null,
+          "delta_t_from_parent": null,
+          "regime": "exponential",
+          "is_background": true,
+          "cascade_depth": 0,
+          "distractor_type": "near_time_unrelated"
+        }
+      ],
+      "ground_truth_sample": {
+        "parents": {
+          "1": 0,
+          "2": 1,
+          "3": 2,
+          "4": 3,
+          "5": 4
+        },
+        "roots": {
+          "0": 0,
+          "1": 0,
+          "2": 0,
+          "3": 0,
+          "4": 0,
+          "5": 0
+        },
+        "background_event_ids_sample": [
+          36,
+          37,
+          38,
+          39
+        ]
+      },
+      "semantic_scenario_sample": {
+        "instantiation_method": "rule_based_template_v1",
+        "scenario_description": "In the Transportation domain, a chain multi_hop_propagation event stream links multi-vehicle collision blocking arterial lanes; congestion onset near incident corridor; downstream congestion propagation through arterial corridor; normal traffic flow restoration; heavy rain onset reducing road visibility; heavy rain clearance after drainage response; planned road closure for utility repair; planned road reopening after safety inspection; road capacity reduction at merge segment; queue formation at upstream bottleneck; route diversion through parallel corridor; incident response dispatch from traffic control; passenger delay accumulation at transit hub; signal timing adjustment by control center; multi-vehicle collision blocking arterial lanes #2; congestion onset near incident corridor #2; downstream congestion propagation through arterial corridor #2; normal traffic flow restoration #2; heavy rain onset reducing road visibility #2; heavy rain clearance after drainage response #2; planned road closure for utility repair #2; planned road reopening after safety inspection #2; road capacity reduction at merge segment #2; queue formation at upstream bottleneck #2; route diversion through parallel corridor #2; incident response dispatch from traffic control #2; passenger delay accumulation at transit hub #2; signal timing adjustment by control center #2; multi-vehicle collision blocking arterial lanes #3; congestion onset near incident corridor #3; downstream congestion propagation through arterial corridor #3; normal traffic flow restoration #3; heavy rain onset reducing road visibility #3; heavy rain clearance after drainage response #3; planned road closure for utility repair #3; planned road reopening after safety inspection #3.",
+        "event_mapping_sample": {
+          "E0": "multi-vehicle collision blocking arterial lanes",
+          "E1": "congestion onset near incident corridor",
+          "E2": "downstream congestion propagation through arterial corridor",
+          "E3": "normal traffic flow restoration",
+          "E4": "heavy rain onset reducing road visibility",
+          "E5": "heavy rain clearance after drainage response"
+        },
+        "relation_explanations_sample": [
+          {
+            "explanation": "multi-vehicle collision blocking arterial lanes has a direct trigger relation to congestion onset near incident corridor.",
+            "relation_type": "direct_trigger",
+            "source": "E0",
+            "target": "E1"
+          },
+          {
+            "explanation": "congestion onset near incident corridor has a direct trigger relation to downstream congestion propagation through arterial corridor.",
+            "relation_type": "direct_trigger",
+            "source": "E1",
+            "target": "E2"
+          },
+          {
+            "explanation": "downstream congestion propagation through arterial corridor has a direct trigger relation to normal traffic flow restoration.",
+            "relation_type": "direct_trigger",
+            "source": "E2",
+            "target": "E3"
+          },
+          {
+            "explanation": "normal traffic flow restoration has a direct trigger relation to heavy rain onset reducing road visibility.",
+            "relation_type": "direct_trigger",
+            "source": "E3",
+            "target": "E4"
+          },
+          {
+            "explanation": "heavy rain onset reducing road visibility has a direct trigger relation to heavy rain clearance after drainage response.",
+            "relation_type": "direct_trigger",
+            "source": "E4",
+            "target": "E5"
+          }
+        ]
+      },
+      "qa_pairs_sample": [
+        {
+          "qa_type": "direct_parent",
+          "question": "What is the direct parent of event 35 [taxi_event_3] (planned road reopening after safety inspection #3)?",
+          "answer": 34,
+          "answer_source": "ground_truth.parents",
+          "target_event_id": 35
+        },
+        {
+          "qa_type": "root_cause",
+          "question": "What is the root cause event of event 35 [taxi_event_3] (planned road reopening after safety inspection #3)?",
+          "answer": 0,
+          "answer_source": "ground_truth.roots",
+          "target_event_id": 35
+        },
+        {
+          "qa_type": "temporal_order",
+          "question": "List all event IDs in ascending timestamp order.",
+          "answer": [
+            0,
+            39,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35,
+            36,
+            37,
+            38
+          ],
+          "answer_source": "events.timestamp",
+          "target_event_id": null
+        },
+        {
+          "qa_type": "time_delay",
+          "question": "What is the time delay from event 0 to event 1?",
+          "answer": 0.010421451,
+          "answer_source": "events.timestamp_difference",
+          "target_event_id": 1,
+          "source_event_id": 0
+        },
+        {
+          "qa_type": "causal_path",
+          "question": "What is the causal path from root to event 35 [taxi_event_3] (planned road reopening after safety inspection #3)?",
+          "answer": [
+            0,
+            1,
+            2,
+            3,
+            4,
+            5,
+            6,
+            7,
+            8,
+            9,
+            10,
+            11,
+            12,
+            13,
+            14,
+            15,
+            16,
+            17,
+            18,
+            19,
+            20,
+            21,
+            22,
+            23,
+            24,
+            25,
+            26,
+            27,
+            28,
+            29,
+            30,
+            31,
+            32,
+            33,
+            34,
+            35
+          ],
+          "answer_source": "ground_truth.paths",
+          "target_event_id": 35
+        }
+      ],
+      "validation_summary": {
+        "label": true,
+        "semantic": true,
+        "structural": true,
+        "temporal": true
+      },
+      "metadata_sample": {
+        "calibration_domain": "Transportation",
+        "calibration_type": "transition_interevent_time",
+        "event_id_order_independent_of_timestamp": true,
+        "generation_mode": "calibrated",
+        "semantic_status": "instantiated",
+        "time_unit": "abstract_float"
+      }
+    }
+  ]
+}
